@@ -42,7 +42,20 @@ def test_skill_card_markup_has_no_blank_lines_that_split_html_blocks():
 
     assert all(line.strip() for line in rendered.splitlines())
     assert "JD: Preferred skills: Terraform..." in rendered
-    assert "Resume: Experience: Built with Python..." in rendered
+    assert "Evidence: Experience: Built with Python..." in rendered
+
+
+def test_skill_card_labels_and_discloses_self_reported_evidence():
+    rendered = render_skill_card(
+        {
+            "canonical_skill": "kubernetes",
+            "evidence_level": "self_reported",
+            "resume_evidence": "Self-reported by user; not independently verified.",
+        }
+    )
+
+    assert "self-reported" in rendered
+    assert "Evidence: Self-reported by user; not independently verified..." in rendered
 
 
 def test_badges_and_alerts_escape_untrusted_text():

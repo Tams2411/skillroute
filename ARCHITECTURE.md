@@ -43,6 +43,7 @@ app.py (six sidebar-navigated pages)
 
 - `gaps`, `all_gaps`, `top_gaps`, and `actionable_gaps` as serialized skill-gap records
 - `matched_skills` and `missing_skills`
+- `unrecognized_user_skills` for manually entered skills excluded from analysis
 - `readiness_state` (`available` or `insufficient_data`)
 - `readiness_score` (0–1) and `readiness_percentage`, both `null` when state is `insufficient_data`
 - extraction counts and metadata
@@ -61,8 +62,11 @@ JD importance informs role relevance. Evidence weights are configured as:
 |---|---:|
 | NONE | 0.0 |
 | MENTIONED | 0.2 |
+| SELF_REPORTED | 0.3 |
 | DEMONSTRATED | 0.4 |
 | VERIFIED | 0.9 |
+
+Manually entered skills are normalized through the taxonomy. Recognized claims use the `SELF_REPORTED` level unless resume evidence is stronger; unknown entries are excluded and returned for UI feedback. A self-report is not represented as independently verified evidence.
 
 Weighted evidence coverage is a heuristic summary of evidence against extracted requirements. If no requirements with positive total importance are extracted, the state is `insufficient_data` and no score or percentage is returned. The UI shows an explanatory message instead of presenting a perfect score or claiming the user is prepared. This metric does not predict hiring outcomes or establish proficiency.
 

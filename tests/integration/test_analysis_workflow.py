@@ -55,7 +55,7 @@ def test_analysis_with_no_extracted_requirements_reports_insufficient_data(sampl
     assert results["readiness_percentage"] is None
 
 
-def test_confirmed_demonstrated_skill_is_verified_and_strength_is_numeric():
+def test_confirming_demonstrated_skill_preserves_resume_evidence_level():
     results = SkillGapService().analyze(
         resume_text="Built production services with Python.",
         jd_text="Required Skills:\n- Python",
@@ -66,19 +66,36 @@ def test_confirmed_demonstrated_skill_is_verified_and_strength_is_numeric():
         skill for skill in results["matched_skills"] if skill["canonical_skill"] == "python"
     )
 
-    assert python["evidence_level"] == "verified"
-    assert python["evidence_strength"] == 0.9
+    assert python["evidence_level"] == "demonstrated"
+    assert python["evidence_strength"] == 0.4
+    assert python["user_confirmed"] is True
 
 
-def test_user_confirmed_skill_becomes_verified_evidence(sample_jd_text):
+def test_alias_entered_by_user_becomes_canonical_self_reported_evidence(sample_jd_text):
     results = SkillGapService().analyze(
         resume_text="Career changer seeking a data engineering role.",
         jd_text=sample_jd_text,
-        user_confirmed_skills=["kafka"],
+        user_confirmed_skills=[" KAFKA ", "apache kafka", "unknown platform"],
     )
 
     kafka = next(
         skill for skill in results["matched_skills"] if skill["canonical_skill"] == "kafka"
     )
-    assert kafka["evidence_level"] == "verified"
+    assert kafka["evidence_level"] == "self_reported"
+    assert kafka["evidence_strength"] == 0.3
     assert kafka["user_confirmed"] is True
+    assert results["unrecognized_user_skills"] == ["unknown platform"]
+
+
+def test_unknown_user_skill_is_not_added_as_evidence():
+    results = SkillGapService().analyze(
+        resume_text="Career changer seeking a data engineering role.",
+        jd_text="Required Skills:\n- Python",
+        user_confirmed_skills=["unrecognized platform"],
+    )
+
+    python = next(
+        skill for skill in results["matched_skills"] if skill["canonical_skill"] == "python"
+    ) if results["matched_skills"] else None
+    assert python is None
+    assert results["unrecognized_user_skills"] == ["unrecognized platform"]

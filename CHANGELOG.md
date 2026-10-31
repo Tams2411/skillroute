@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added skill-specific learning resources and merged duplicate project recommendations
 
 ### Fixed
+- Prevented manually entered skills from being treated as verified evidence; normalize supported aliases and report unrecognized entries
 - Report insufficient data instead of 100% coverage when no assessable JD requirements are extracted
 - Improved primary button label contrast, including the disabled Analyze Skill Gaps state
 - Exposed the analysis `gaps` data consumed by the plan, interview, and dashboard tabs

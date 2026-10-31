@@ -24,7 +24,10 @@ class TestEvidenceWeights:
     
     def test_demonstrated_returns_medium(self):
         assert evidence_level_to_weight(EvidenceLevel.DEMONSTRATED) == 0.4
-    
+
+    def test_self_reported_returns_configured_weight(self):
+        assert evidence_level_to_weight(EvidenceLevel.SELF_REPORTED) == 0.3
+
     def test_verified_returns_high(self):
         assert evidence_level_to_weight(EvidenceLevel.VERIFIED) == 0.9
 
@@ -154,6 +157,27 @@ class TestComputeSkillGap:
         assert gap.evidence_strength == 0.9
         assert gap.priority == pytest.approx(0.1)
         assert "verified in resume" in gap.reason.lower()
+
+    def test_self_reported_skill_is_not_described_as_verified(self):
+        jd_skill = JobSkillRequirement(
+            canonical_skill="kubernetes",
+            importance=1.0,
+            evidence_phrase="Kubernetes",
+            extraction_confidence=1.0,
+        )
+        resume_evidence = SkillEvidence(
+            canonical_skill="kubernetes",
+            evidence_level=EvidenceLevel.SELF_REPORTED,
+            source="manual",
+            supporting_evidence="Self-reported by user; not independently verified.",
+            user_confirmed=True,
+        )
+
+        gap = compute_skill_gap(jd_skill, resume_evidence)
+
+        assert gap.evidence_strength == 0.3
+        assert "self-reported" in gap.reason.lower()
+        assert "not independently verified" in gap.resume_evidence.lower()
 
 
 class TestRankGaps:

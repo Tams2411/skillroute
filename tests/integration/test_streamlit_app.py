@@ -45,6 +45,30 @@ def test_insufficient_requirements_are_not_presented_as_readiness(active_tab):
     assert "100%" not in messages
 
 
+def test_unrecognized_manual_skills_are_reported_in_assessment():
+    app_path = Path(__file__).parents[2] / "app.py"
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["analysis_results"] = {
+        "readiness_state": "available",
+        "readiness_score": 0.2,
+        "readiness_percentage": 20,
+        "total_jd_skills": 1,
+        "gaps": [],
+        "all_gaps": [],
+        "top_gaps": [],
+        "actionable_gaps": [],
+        "matched_skills": [],
+        "missing_skills": [],
+        "unrecognized_user_skills": ["unknown platform"],
+    }
+    app.session_state["active_tab"] = "Assessment"
+
+    app.run()
+
+    assert not app.exception
+    assert any("unknown platform" in element.value for element in app.warning)
+
+
 def test_sample_workflow_generates_assessment_plan_and_interview():
     app_path = Path(__file__).parents[2] / "app.py"
 

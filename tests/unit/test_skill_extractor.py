@@ -35,12 +35,12 @@ def test_unrelated_demonstration_language_does_not_inflate_evidence():
     assert python.evidence_level == "mentioned"
 
 
-def test_user_confirmation_upgrades_demonstrated_evidence():
+def test_user_confirmation_does_not_upgrade_demonstrated_evidence_to_verified():
     extractor = SkillExtractor()
     matches = extractor.extract_from_resume("Built a service with Python.")
 
     extractor.add_user_confirmation(matches, "python", confirmed=True)
 
     python = next(match for match in matches if match.canonical_skill == "python")
-    assert python.evidence_level == "verified"
+    assert python.evidence_level == "demonstrated"
     assert python.user_confirmed is True

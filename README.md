@@ -45,7 +45,8 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 
 ### Core Design Principles
 
-- **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/DEMONSTRATED/VERIFIED), with a transparent priority score.
+- **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/SELF_REPORTED/DEMONSTRATED/VERIFIED), with a transparent priority score.
+- **Honest manual skill claims** — Recognized aliases are normalized, user-reported skills are scored below demonstrated evidence, and unknown entries are reported rather than counted.
 - **Honest coverage reporting** — Weighted evidence coverage is shown only when recognizable job requirements are available; insufficient input is reported without a percentage.
 - **Deterministic by default** — Core resume/JD analysis and scoring run locally without an AI provider.
 - **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.
@@ -136,6 +137,7 @@ Settings are optional; defaults are listed below. Copy `.env.example` to `.env` 
 | `MAX_JD_LENGTH` | `10000` | Maximum job-description characters |
 | `EVIDENCE_NONE` | `0.0` | Evidence weight for no evidence |
 | `EVIDENCE_MENTIONED` | `0.2` | Evidence weight for a mention |
+| `EVIDENCE_SELF_REPORTED` | `0.3` | Evidence weight for a user-reported skill not independently verified |
 | `EVIDENCE_DEMONSTRATED` | `0.4` | Evidence weight for demonstrated experience |
 | `EVIDENCE_VERIFIED` | `0.9` | Evidence weight for verified experience |
 

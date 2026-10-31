@@ -106,8 +106,8 @@ def render_intake_tab() -> dict | None:
     
     # User confirmed skills
     st.markdown(render_section_header(
-        "Confirmed Skills (Optional)",
-        "Add skills you know you have but aren't captured in your resume",
+        "Additional Skills (Optional)",
+        "Add skills you have that aren't captured in your resume. These self-reports aren't independently verified.",
         icon="check-circle"
     ), unsafe_allow_html=True)
     
@@ -149,6 +149,14 @@ def render_intake_tab() -> dict | None:
 
 def render_results(results: dict) -> None:
     """Render the analysis results."""
+
+    unrecognized_skills = results.get("unrecognized_user_skills", [])
+    if unrecognized_skills:
+        st.warning(
+            "These manually entered skills were not recognized and were not included: "
+            + ", ".join(unrecognized_skills)
+            + ". Check spelling or use a supported skill name or alias."
+        )
 
     if results.get("readiness_state") == "insufficient_data":
         st.markdown(render_section_header(

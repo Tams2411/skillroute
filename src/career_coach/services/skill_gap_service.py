@@ -39,7 +39,7 @@ class SkillGapService:
             resume_text: Raw resume text (optional if resume_file provided)
             resume_file: Path to resume file (optional if resume_text provided)
             jd_text: Job description text
-            user_confirmed_skills: List of canonical skills user confirms they have
+            user_confirmed_skills: List of skills or aliases the user reports having
 
         Returns:
             Dictionary with gaps, readiness score, and metadata
@@ -69,28 +69,48 @@ class SkillGapService:
         # 3. Extract skills from resume
         resume_skills = self.skill_extractor.extract_from_resume(resume_text)
 
-        # 4. Apply user confirmations
-        if user_confirmed_skills:
-            for skill in user_confirmed_skills:
-                # Check if skill already extracted
-                found = False
-                for rs in resume_skills:
-                    if rs.canonical_skill == skill:
-                        rs.user_confirmed = True
-                        rs.evidence_level = EvidenceLevel.VERIFIED.value
-                        found = True
-                        break
+        # 4. Normalize and apply user-confirmed skills
+        recognized_user_skills = []
+        unrecognized_user_skills = []
+        for entered_skill in user_confirmed_skills or []:
+            if not isinstance(entered_skill, str):
+                raise ValueError("Confirmed skills must be text values.")
+            entered_skill = entered_skill.strip()
+            if not entered_skill:
+                continue
 
-                # If not found, add as verified
-                if not found:
-                    resume_skills.append(SkillMatch(
-                        canonical_skill=skill,
-                        evidence_level=EvidenceLevel.VERIFIED.value,
-                        source="manual",
-                        supporting_evidence="User confirmed",
-                        user_confirmed=True,
-                        extraction_confidence=1.0,
-                    ))
+            canonical_skill = self.taxonomy.get_canonical(entered_skill)
+            if canonical_skill is None:
+                if entered_skill not in unrecognized_user_skills:
+                    unrecognized_user_skills.append(entered_skill)
+                continue
+            if canonical_skill not in recognized_user_skills:
+                recognized_user_skills.append(canonical_skill)
+
+        for skill in recognized_user_skills:
+            found = False
+            for rs in resume_skills:
+                if rs.canonical_skill == skill:
+                    rs.user_confirmed = True
+                    if rs.evidence_level in (
+                        EvidenceLevel.NONE.value,
+                        EvidenceLevel.MENTIONED.value,
+                    ):
+                        rs.evidence_level = EvidenceLevel.SELF_REPORTED.value
+                    found = True
+                    break
+
+            if not found:
+                resume_skills.append(SkillMatch(
+                    canonical_skill=skill,
+                    evidence_level=EvidenceLevel.SELF_REPORTED.value,
+                    source="manual",
+                    supporting_evidence=(
+                        "Self-reported by user; not independently verified."
+                    ),
+                    user_confirmed=True,
+                    extraction_confidence=1.0,
+                ))
 
         # 5. Build resume evidence map
         resume_evidence_map = {
@@ -162,6 +182,7 @@ class SkillGapService:
             "readiness_score": readiness,
             "readiness_percentage": round(readiness * 100) if readiness is not None else None,
             "total_jd_skills": len(jd_requirements),
+            "unrecognized_user_skills": unrecognized_user_skills,
             "gaps": [g.model_dump() for g in ranked_gaps],
             "matched_skills": matched_skills,
             "missing_skills": [g.model_dump() for g in missing_skills],

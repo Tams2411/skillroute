@@ -11,6 +11,7 @@ class EvidenceLevel(str, Enum):
     """Strength of evidence for a skill."""
     NONE = "none"
     MENTIONED = "mentioned"
+    SELF_REPORTED = "self_reported"
     DEMONSTRATED = "demonstrated"
     VERIFIED = "verified"
 

@@ -76,6 +76,11 @@ def compute_skill_gap(
         reason = f"Skill required for role (importance: {role_relevance:.0%}) but not found in resume"
     elif evidence_level == EvidenceLevel.MENTIONED:
         reason = f"Skill mentioned in resume but not demonstrated; role requires it (importance: {role_relevance:.0%})"
+    elif evidence_level == EvidenceLevel.SELF_REPORTED:
+        reason = (
+            f"Skill self-reported by user but not independently verified; "
+            f"role requires it (importance: {role_relevance:.0%})"
+        )
     elif evidence_level == EvidenceLevel.DEMONSTRATED:
         reason = f"Skill demonstrated in resume; role requires it (importance: {role_relevance:.0%})"
     else:  # VERIFIED

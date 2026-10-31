@@ -512,6 +512,7 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     evidence_colors = {
         "verified": ("chip-verified", "verified"),
         "demonstrated": ("chip-matched", "demonstrated"),
+        "self_reported": ("chip-preferred", "self-reported"),
         "mentioned": ("chip-preferred", "mentioned"),
         "none": ("chip-gap", "missing"),
     }
@@ -550,7 +551,7 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     if resume_evidence:
         card_parts.append(
             f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">'
-            f'Resume: {_escape_html(resume_evidence[:150])}...</div>'
+            f'Evidence: {_escape_html(resume_evidence[:150])}...</div>'
         )
     if uncertainty:
         card_parts.append(
