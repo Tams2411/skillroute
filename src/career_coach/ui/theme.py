@@ -143,6 +143,22 @@ def apply_theme() -> None:
         color: var(--text-inverse);
         border-color: var(--accent-primary);
     }
+
+    .stButton > button[kind="primary"] p {
+        color: var(--text-inverse) !important;
+    }
+
+    .stButton > button[kind="primary"]:disabled,
+    .stButton > button[kind="primary"]:disabled:hover {
+        background: #164e63;
+        color: var(--text-primary);
+        border-color: #155e75;
+        opacity: 1;
+    }
+
+    .stButton > button[kind="primary"]:disabled p {
+        color: var(--text-primary) !important;
+    }
     
     .stButton > button[kind="primary"]:hover {
         background: var(--accent-primary-hover);
