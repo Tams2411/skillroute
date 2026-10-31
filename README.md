@@ -1,11 +1,10 @@
 # SkillRoute — Career Pivot Coach
 
-[![CI](https://github.com/Tams2411/skillroute/actions/workflows/ci.yml/badge.svg)](https://github.com/Tams2411/skillroute/actions/workflows/ci.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL_3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Coverage](https://img.shields.io/badge/coverage-30%25-yellow.svg)](https://github.com/Tams2411/skillroute)
+[![CI](https://github.com/AshayK003/skillroute/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AshayK003/skillroute/actions/workflows/ci.yml)
 
-**An AI-powered career pivot coach that analyzes your resume against job descriptions, identifies skill gaps with evidence-based prioritization, and generates personalized learning plans, interview prep, and application tracking — all in one Streamlit app.**
+**A local, deterministic career-pivot coach that compares resume evidence with a job description, prioritizes skill gaps, and supports learning plans, interview practice, and application tracking.**
 
 ---
 
@@ -13,44 +12,44 @@
 
 ```bash
 # 1. Clone and enter
-git clone https://github.com/Tams2411/skillroute.git
+git clone https://github.com/AshayK003/skillroute.git
 cd skillroute
 
-# 2. Create virtual environment and install
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+# 2. Install the locked runtime and development dependencies
+uv sync --extra dev --locked
 
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your API keys (optional — core works without them)
+# 3. Optional: copy the settings template
+# PowerShell: Copy-Item .env.example .env
+# macOS/Linux: cp .env.example .env
 
 # 4. Run
-streamlit run app.py
+uv run streamlit run app.py --server.address=127.0.0.1
 ```
 
-Open http://localhost:8501 — you'll see the **Intake** tab. Upload a resume (PDF/DOCX/TXT), paste a job description, click **Analyze Gap**, and explore the 6 tabs.
+Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job description, and select **Analyze Skill Gaps**. No API keys or external services are used by the app workflow.
+
+> **Hosted demo warning:** The app has no authentication. Tracker entries are plaintext JSON shared by users of the same app instance, and Streamlit Community Cloud does not guarantee persistence of local files. Do not enter real or sensitive resume, job-description, or application data in a hosted demo.
 
 ---
 
 ## Features
 
-| Tab | What It Does |
+| Page | What It Does |
 |-----|--------------|
 | **Intake** | Upload resume (PDF/DOCX/TXT) + paste JD → instant skill extraction with evidence levels |
-| **Assessment** | Gap analysis with priority scoring: `Relevance × (1 − Evidence) × Criticality` |
-| **Plan** | Weekly learning tasks + curated resources (docs, videos, practice) + project recommendations |
+| **Assessment** | Gap analysis with priority scoring: `Relevance × (1 − Evidence) × Extraction Confidence` |
+| **Plan** | Weekly learning tasks, curated resources, and project recommendations |
 | **Interview** | Rubric-based mock questions (technical + behavioral) with self-evaluation scoring |
 | **Tracker** | Application CRUD — company, role, URL, status, notes + response/interview/offer rates |
 | **Dashboard** | Readiness score, gap distribution, application stats, quick-action cards |
 
 ### Core Design Principles
 
-- **Deterministic core** — Taxonomy-driven normalization, explicit evidence levels (NONE/MENTIONED/DEMONSTRATED/VERIFIED), transparent priority formula. Works without any API keys.
-- **Optional AI enhancement** — Pluggable LLM layer for richer extraction (OpenRouter/OpenAI via `.env`).
-- **Zero hardcoded secrets** — Pydantic Settings + `.env` for all configuration.
-- **Premium UI** — Dark theme with CSS variables, semantic design tokens, WCAG-compliant contrast, Lucide SVG icons.
-- **Hackathon-ready** — Single-file run, no external services required for core flow.
+- **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/DEMONSTRATED/VERIFIED), with a transparent priority score.
+- **Privacy-conscious local workflow** — Resume and job-description text are processed locally and are not sent to an AI provider.
+- **Validated inputs** — Upload size/page limits and pasted-text limits are enforced.
+- **Local persistence** — Application records are stored in `data/applications.json`.
+- **Six-page Streamlit UI** — Sidebar navigation for intake, assessment, learning plan, interview practice, tracker, and dashboard.
 
 ---
 
@@ -59,16 +58,15 @@ Open http://localhost:8501 — you'll see the **Intake** tab. Upload a resume (P
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        app.py (Streamlit)                       │
-│  7 Tabs: Intake │ Assessment │ Plan │ Projects │ Interview │  │
-│         Tracker  │ Dashboard                                     │
+│  Sidebar pages: Intake │ Assessment │ Plan │ Interview │ Tracker │ Dashboard │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
            ┌───────────────┼───────────────┐
            ▼               ▼               ▼
     ┌──────────────┐ ┌─────────────┐ ┌──────────────┐
     │ ResumeParser │ │ JDParser    │ │ SkillExtractor│
-    │ (pypdf +     │ │ (regex +    │ │ (taxonomy +  │
-    │  pdfplumber) │ │  fuzzy)     │ │  evidence)   │
+    │ (PDF/DOCX/   │ │ (regex +    │ │ (taxonomy +  │
+    │  TXT)        │ │  aliases)   │ │  evidence)   │
     └──────┬───────┘ └──────┬──────┘ └──────┬───────┘
            │                │               │
            └────────────────┼───────────────┘
@@ -93,25 +91,25 @@ Open http://localhost:8501 — you'll see the **Intake** tab. Upload a resume (P
 
 | Module | Responsibility |
 |--------|----------------|
-| `domain/schemas.py` | All Pydantic models: `SkillEvidence`, `SkillGap`, `GapAnalysisResult`, `LearningResource`, `ProjectSpec`, `WeeklyPlan`, `InterviewQuestion`, `InterviewRubric`, `ApplicationRecord`, `ResumeAnalysis`, `UserProfile` |
+| `domain/schemas.py` | Pydantic contracts for skill evidence/gaps, learning tasks, interview sessions, and application records |
 | `domain/skill_taxonomy.py` | `SkillTaxonomy` — canonical skill catalog with aliases, categories, related skills |
 | `domain/scoring.py` | Priority formula, evidence weights, gap ranking, readiness calculation |
 | `services/resume_parser.py` | Multi-format parser (PDF/DOCX/TXT), LRU cache, 5MB/10-page limits |
-| `services/jd_parser.py` | JD section detection (regex), skill extraction with fuzzy matching (threshold 0.85) |
+| `services/jd_parser.py` | JD section detection and exact taxonomy/alias matching |
 | `services/skill_extractor.py` | Evidence-level inference from context, taxonomy normalization |
 | `services/skill_gap_service.py` | Full analysis pipeline orchestration |
 | `services/plan_generator.py` | Learning plan + project recommendations from top gaps |
-| `services/interview_service.py` | Question templates by category + rubric evaluation |
+| `services/interview_service.py` | Skill-focused technical/behavioral questions + self-evaluation rubrics |
 | `services/tracker_service.py` | Application tracking with JSON persistence |
 | `ui/theme.py` | Professional dark theme (550 lines, CSS variables, SVG icons) |
-| `ui/*.py` | Tab implementations (Intake, Plan, Interview, Tracker, Dashboard) |
+| `ui/*.py` | Page implementations, sidebar navigation, and shared theme |
 
 ### Data Flow
 
 1. **Intake** → `ResumeParser` extracts text → `SkillExtractor` finds skills with evidence
 2. **JD Parse** → `JDParser` splits into sections → `SkillExtractor` maps to taxonomy
-3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps[]`, `readiness_score`
-4. **Plan** → `LearningPlanService` generates weekly tasks + project specs from top gaps
+3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps`, and a heuristic readiness score
+4. **Plan** → `plan_generator` creates weekly tasks and project recommendations from prioritized gaps
 5. **Interview** → `InterviewService` creates questions + rubrics per gap category
 6. **Tracker** → `ApplicationTracker` persists applications to `data/applications.json`
 7. **Dashboard** → Aggregates readiness, stats, recent activity
@@ -120,35 +118,36 @@ Open http://localhost:8501 — you'll see the **Intake** tab. Upload a resume (P
 
 ## Configuration
 
-All settings via `.env` (see `.env.example`):
+Settings are optional; defaults are listed below. Copy `.env.example` to `.env` to override them. This version does not use API keys, a database URL, or a session secret.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | `development` | Environment name |
 | `DEBUG` | `true` | Debug mode |
-| `SECRET_KEY` | *required* | Session secret |
-| `DATABASE_URL` | `sqlite:///./data/app.db` | SQLAlchemy connection |
-| `OPENROUTER_API_KEY` | — | Optional AI enhancement |
-| `OPENAI_API_KEY` | — | Optional AI enhancement |
-| `AI_MODEL` | `anthropic/claude-3.5-sonnet` | Primary model |
-| `FALLBACK_MODEL` | `openai/gpt-4o-mini` | Fallback model |
-| `MAX_PDF_PAGES` | `10` | Resume page limit |
-| `MAX_PDF_SIZE_MB` | `5` | Resume size limit |
-| `STREAMLIT_PORT` | `8501` | Server port |
+| `MAX_PDF_SIZE_MB` | `5` | Maximum uploaded resume size |
+| `MAX_PDF_PAGES` | `10` | Maximum PDF page count |
+| `MAX_RESUME_LENGTH` | `50000` | Maximum pasted or extracted resume characters |
+| `MAX_JD_LENGTH` | `10000` | Maximum job-description characters |
+| `EVIDENCE_NONE` | `0.0` | Evidence weight for no evidence |
+| `EVIDENCE_MENTIONED` | `0.2` | Evidence weight for a mention |
+| `EVIDENCE_DEMONSTRATED` | `0.4` | Evidence weight for demonstrated experience |
+| `EVIDENCE_VERIFIED` | `0.9` | Evidence weight for verified experience |
+
+Use Streamlit CLI options to change the server port, for example `streamlit run app.py --server.port=8502`.
 
 ---
 
 ## Testing
 
 ```bash
-# Run all unit tests
-pytest tests/unit/ -v
+# Run all tests
+uv run pytest -q
 
 # Run with coverage
-pytest tests/unit/ --cov=src/career_coach --cov-report=term-missing
-
-# Current status: 30 tests passing (20 scoring + 10 taxonomy)
+uv run pytest -q --cov=src/career_coach --cov-report=term-missing
 ```
+
+The suite includes unit and Streamlit integration tests for sample analysis, plan and interview generation, navigation, input safety, and tracker persistence.
 
 ### Test Structure
 
@@ -156,9 +155,21 @@ pytest tests/unit/ --cov=src/career_coach --cov-report=term-missing
 tests/
 ├── conftest.py              # Fixtures: sample_resume_text, sample_jd_text
 ├── unit/
-│   ├── test_scoring.py      # 20 tests: weights, priority, evidence, gaps, ranking, readiness
-│   └── test_skill_taxonomy.py # 10 tests: loading, canonical/alias lookup, case insensitivity
-└── integration/             # (planned)
+│   ├── test_scoring.py
+│   ├── test_skill_taxonomy.py
+│   ├── test_skill_extractor.py
+│   ├── test_jd_parser.py
+│   ├── test_interview_service.py
+│   ├── test_plan_recommendations.py
+│   ├── test_tracker_stats.py
+│   ├── test_resume_parser.py
+│   ├── test_ui_escape.py
+│   └── test_upload_validation.py
+└── integration/
+    ├── test_analysis_workflow.py
+    ├── test_input_safety.py
+    ├── test_streamlit_app.py
+    └── test_tracker_workflow.py
 ```
 
 ---
@@ -173,8 +184,8 @@ tests/
 ### Setup
 
 ```bash
-# Using uv (faster)
-uv pip install -e ".[dev]"
+# Reproduce the locked development environment
+uv sync --extra dev --locked
 
 # Or pip
 pip install -e ".[dev]"
@@ -183,17 +194,14 @@ pip install -e ".[dev]"
 ### Code Quality
 
 ```bash
-# Format
-ruff format .
-
-# Lint
-ruff check .
+# Run the same focused lint gate as CI
+uv run ruff check --select E4,E7,E9,F src/ tests/
 
 # Type check
-mypy src/
+uv run mypy src/
 
-# Pre-commit (install once)
-pre-commit install
+# Dependency audit
+uv run pip-audit --progress-spinner off --skip-editable
 ```
 
 ### Project Structure
@@ -207,8 +215,10 @@ skillroute/
 ├── README.md                   # This file
 ├── CONTRIBUTING.md             # Contribution guide
 ├── ARCHITECTURE.md             # System architecture docs
+├── uv.lock                     # Reproducible dependency resolution
+├── .github/workflows/ci.yml    # Tests, type check, lint, dependency audit
 ├── data/
-│   ├── skill_taxonomy.json     # Curated skill catalog (50+ skills)
+│   ├── skill_taxonomy.json     # Legacy 40-skill snapshot; not loaded by default
 │   └── uploads/                # Temp resume uploads (gitignored)
 ├── internals/                  # Gitignored: build manual, research, decisions
 ├── src/career_coach/
@@ -216,45 +226,44 @@ skillroute/
 │   ├── config.py               # Pydantic Settings
 │   ├── domain/                 # Schemas, taxonomy, scoring
 │   ├── services/               # Parsers, extractors, gap analysis, plan, interview, tracker
-│   └── ui/                     # Theme + 6 tab implementations
+│   └── ui/                     # Theme, sidebar navigation, and page implementations
 ├── tests/
 │   ├── conftest.py
-│   └── unit/
+│   ├── unit/
+│   └── integration/
 └── .streamlit/
-    └── config.toml             # Streamlit server config
+    └── config.toml             # Streamlit upload-size limit
 ```
 
----
-
-## Screenshots
-
-| Intake & Analysis | Plan & Interview |
-|-------------------|------------------|
-| ![Intake](docs/screenshots/intake.png) | ![Plan](docs/screenshots/plan.png) |
-
-| Tracker & Dashboard |
-|---------------------|
-| ![Dashboard](docs/screenshots/dashboard.png) |
-
-*(Add screenshots to `docs/screenshots/` after running the app)*
+See [LIMITATIONS.md](LIMITATIONS.md) for known constraints and demo status.
 
 ---
 
 ## Roadmap
 
-- [ ] Integration tests (full pipeline with sample data)
-- [ ] AI-enhanced extraction (LLM fallback when taxonomy misses skills)
-- [ ] PostgreSQL support for hosted demo
+- [x] GitHub Actions CI and dependency audit
+- [ ] Configure the initial Streamlit Community Cloud app
+- [ ] Demo screenshots or recording
+- [ ] Semantic matching (optional; not part of current analysis pipeline)
+- [ ] Hosted persistence and multi-user support
 - [ ] Export analysis to PDF/Markdown
 - [ ] LinkedIn profile import
-- [ ] Multi-user support with auth
-- [ ] CI/CD pipeline (GitHub Actions)
+
+---
+
+## CI and Streamlit Community Cloud
+
+GitHub Actions runs on pushes, pull requests targeting `main`, and manual dispatch. The workflow tests Python 3.11 and 3.12, runs focused Ruff checks and mypy, executes the test suite with coverage, and audits dependencies. `uv.lock` keeps CI and local installs reproducible.
+
+To enable deployment, create an app in [Streamlit Community Cloud](https://share.streamlit.io/) and select this repository, the `main` branch, and `app.py` as the entry point. Choose Python 3.12. After the initial setup, Community Cloud rebuilds the app when the selected branch changes; this repository does not include a separate deployment workflow or Cloud credentials.
+
+For safer merges, configure GitHub branch protection to require **Tests (Python 3.11)**, **Tests (Python 3.12)**, and **Dependency audit**. Hosted deployment is for demonstrations only; see [LIMITATIONS.md](LIMITATIONS.md) before sharing the app.
 
 ---
 
 ## License
 
-**AGPL-3.0** — Free for open-source use. Commercial use requires source disclosure.
+**MIT**.
 
 See [LICENSE](LICENSE) for full text.
 

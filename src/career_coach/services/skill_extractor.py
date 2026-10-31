@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
-from career_coach.config import settings
 
 
 @dataclass
@@ -24,13 +23,13 @@ class SkillExtractor:
 
     # Patterns that suggest demonstrated/verified evidence
     DEMONSTRATED_PATTERNS = [
-        r"built|developed|created|implemented|designed|architected",
-        r"experience\s+(?:with|in|using)",
-        r"proficient\s+(?:with|in|using)",
-        r"expert\s+(?:in|with)",
-        r"\d+\s*years?\s+(?:of\s+)?experience",
-        r"production|deployed|launched|delivered",
-        r"project|assignment|capstone|thesis",
+        r"\b(?:built|developed|created|implemented|designed|architected)\b",
+        r"\bexperience\s+(?:with|in|using)\b",
+        r"\bproficient\s+(?:with|in|using)\b",
+        r"\bexpert\s+(?:in|with)\b",
+        r"\b\d+\s*years?\s+(?:of\s+)?experience\b",
+        r"\b(?:production|deployed|launched|delivered)\b",
+        r"\b(?:project|assignment|capstone|thesis)\b",
     ]
 
     MENTIONED_PATTERNS = [
@@ -57,10 +56,10 @@ class SkillExtractor:
         matches = []
 
         # Exact matching (canonical + aliases)
-        for canonical, alias in self._alias_map:
+        for alias, canonical in self._alias_map:
             if self._skill_in_text(alias, text_lower):
                 evidence_phrase = self._find_evidence_phrase(alias, resume_text)
-                evidence_level = self._assess_evidence_level(evidence_phrase, resume_text)
+                evidence_level = self._assess_evidence_level(evidence_phrase)
                 confidence = self._calculate_confidence(alias, text_lower, evidence_phrase, evidence_level)
 
                 match = SkillMatch(
@@ -73,7 +72,7 @@ class SkillExtractor:
                 matches.append(match)
 
         # Deduplicate by canonical skill (keep highest confidence)
-        seen = {}
+        seen: dict[str, SkillMatch] = {}
         for match in matches:
             if match.canonical_skill not in seen or match.extraction_confidence > seen[match.canonical_skill].extraction_confidence:
                 seen[match.canonical_skill] = match
@@ -93,7 +92,7 @@ class SkillExtractor:
         text_lower = jd_text.lower()
         matches = []
 
-        for canonical, alias in self._alias_map:
+        for alias, canonical in self._alias_map:
             if self._skill_in_text(alias, text_lower):
                 evidence_phrase = self._find_evidence_phrase(alias, jd_text)
                 # JD skills don't have user evidence levels, default to mentioned
@@ -110,7 +109,7 @@ class SkillExtractor:
                 matches.append(match)
 
         # Deduplicate
-        seen = {}
+        seen: dict[str, SkillMatch] = {}
         for match in matches:
             if match.canonical_skill not in seen or match.extraction_confidence > seen[match.canonical_skill].extraction_confidence:
                 seen[match.canonical_skill] = match
@@ -127,36 +126,40 @@ class SkillExtractor:
 
     def _find_evidence_phrase(self, skill: str, text: str, window: int = 150) -> str:
         """Find the phrase containing the skill mention."""
-        skill_lower = skill.lower()
-        text_lower = text.lower()
-
-        idx = text_lower.find(skill_lower)
-        if idx == -1:
+        match = re.search(
+            rf"(?<!\w){re.escape(skill.lower())}(?!\w)",
+            text,
+            re.IGNORECASE,
+        )
+        if not match:
             return ""
 
-        start = max(0, idx - window)
-        end = min(len(text), idx + len(skill) + window)
+        start = max(0, match.start() - window)
+        end = min(len(text), match.end() + window)
         phrase = text[start:end].strip()
 
         # Try to get full sentence
         sentences = re.split(r"[.!?]\s+", phrase)
         for s in sentences:
-            if skill_lower in s.lower():
+            if re.search(
+                rf"(?<!\w){re.escape(skill.lower())}(?!\w)",
+                s,
+                re.IGNORECASE,
+            ):
                 return s.strip()[:300]
 
         return phrase[:300]
 
-    def _assess_evidence_level(self, evidence_phrase: str, full_text: str) -> str:
+    def _assess_evidence_level(self, evidence_phrase: str) -> str:
         """Assess evidence level from context."""
         if not evidence_phrase:
             return "none"
 
         phrase_lower = evidence_phrase.lower()
-        full_lower = full_text.lower()
 
         # Check for demonstrated patterns
         for pattern in self._demonstrated_regex:
-            if pattern.search(phrase_lower) or pattern.search(full_lower):
+            if pattern.search(phrase_lower):
                 return "demonstrated"
 
         # Check for mentioned patterns
@@ -206,8 +209,6 @@ class SkillExtractor:
         for match in matches:
             if match.canonical_skill == canonical_skill:
                 match.user_confirmed = confirmed
-                if confirmed and match.evidence_level == "mentioned":
+                if confirmed:
                     match.evidence_level = "verified"
-                elif not confirmed and match.evidence_level == "verified":
-                    match.evidence_level = "demonstrated"
         return matches

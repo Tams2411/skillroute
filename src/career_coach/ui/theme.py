@@ -1,11 +1,19 @@
 """Professional Streamlit UI theme and styling."""
 
+import html
+import textwrap
+
 import streamlit as st
+
+
+def _escape_html(value: object) -> str:
+    """Escape dynamic text before inserting it into HTML."""
+    return html.escape(str(value), quote=True)
 
 
 def apply_theme() -> None:
     """Apply professional minimal theme with CSS variables."""
-    st.markdown("""
+    st.html("""
     <style>
     /* ========================================
        CSS Variables - Professional Palette
@@ -410,7 +418,7 @@ def apply_theme() -> None:
     .justify-between { justify-content: space-between; }
     .flex-wrap { flex-wrap: wrap; }
     </style>
-    """, unsafe_allow_html=True)
+    """)
 
 
 def render_svg(icon_name: str, size: int = 20, color: str = "currentColor") -> str:
@@ -442,34 +450,42 @@ def render_svg(icon_name: str, size: int = 20, color: str = "currentColor") -> s
     return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{svg}</svg>'
 
 
-def render_chip(label: str, variant: str = "default", icon: str = None) -> str:
+def render_chip(label: str, variant: str = "default", icon: str | None = None) -> str:
     """Render a styled chip/badge."""
     icon_html = render_svg(icon, 12) if icon else ""
-    return f'<span class="chip chip-{variant}">{icon_html}{label}</span>'
+    return f'<span class="chip chip-{_escape_html(variant)}">{icon_html}{_escape_html(label)}</span>'
 
 
-def render_status(message: str, variant: str = "info", icon: str = None) -> str:
+def render_status(message: str, variant: str = "info", icon: str | None = None) -> str:
     """Render a status indicator."""
     icon_html = render_svg(icon, 16) if icon else ""
-    return f'<div class="status-indicator status-{variant}">{icon_html}{message}</div>'
+    return (
+        f'<div class="status-indicator status-{_escape_html(variant)}">'
+        f'{icon_html}{_escape_html(message)}</div>'
+    )
 
 
-def render_alert(message: str, variant: str = "info", icon: str = None) -> str:
+def render_alert(message: str, variant: str = "info", icon: str | None = None) -> str:
     """Render an alert box."""
     icon_html = render_svg(icon, 18) if icon else ""
-    return f'<div class="alert alert-{variant}">{icon_html}{message}</div>'
+    return (
+        f'<div class="alert alert-{_escape_html(variant)}">'
+        f'{icon_html}{_escape_html(message)}</div>'
+    )
 
 
-def render_metric(label: str, value: str, delta: str = None) -> str:
+def render_metric(label: object, value: object, delta: object | None = None) -> str:
     """Render a metric card."""
-    delta_html = f'<div class="text-success text-muted">{delta}</div>' if delta else ""
-    return f'''
+    delta_html = (
+        f'<div class="text-success text-muted">{_escape_html(delta)}</div>' if delta else ""
+    )
+    return textwrap.dedent(f'''
     <div class="metric-card animate-fade-in">
-        <div class="metric-value">{value}</div>
-        <div class="metric-label">{label}</div>
+        <div class="metric-value">{_escape_html(value)}</div>
+        <div class="metric-label">{_escape_html(label)}</div>
         {delta_html}
     </div>
-    '''
+    ''').replace("\n", "").strip()
 
 
 def render_skill_card(skill: dict, show_priority: bool = False) -> str:
@@ -488,63 +504,76 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     priority_bar = ""
     if show_priority:
         pct = int(priority * 100)
-        priority_bar = f'''
-        <div class="progress-bar" style="margin-top: 0.75rem;">
-            <div class="progress-fill" style="width: {pct}%"></div>
-        </div>
-        <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Priority: {pct}%</div>
-        '''
-    
-    jd_evidence = skill.get("jd_evidence", "")
-    resume_evidence = skill.get("resume_evidence", "")
-    reason = skill.get("reason", "")
-    uncertainty = skill.get("uncertainty", "")
-    
-    return f'''
-    <div class="skill-card animate-fade-in">
-        <div class="flex justify-between items-center mb-1">
-            <strong style="font-size: 1rem;">{skill.get("canonical_skill", "Unknown")}</strong>
-            {render_chip(chip_label, chip_class.replace("chip-", ""))}
-        </div>
-        <div class="text-secondary text-muted" style="font-size: 0.875rem;">{reason}</div>
-        {priority_bar}
-        {f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.5rem;">JD: {jd_evidence[:150]}...</div>' if jd_evidence else ''}
-        {f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Resume: {resume_evidence[:150]}...</div>' if resume_evidence else ''}
-        {f'<div class="text-warning" style="font-size: 0.75rem; margin-top: 0.25rem;">⚠ {uncertainty}</div>' if uncertainty else ''}
-    </div>
-    '''
+        priority_bar = (
+            '<div class="progress-bar" style="margin-top: 0.75rem;">'
+            f'<div class="progress-fill" style="width: {pct}%"></div>'
+            '</div>'
+            f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Priority: {pct}%</div>'
+        )
+
+    canonical_skill = " ".join(str(skill.get("canonical_skill", "Unknown")).split())
+    jd_evidence = " ".join(str(skill.get("jd_evidence", "")).split())
+    resume_evidence = " ".join(str(skill.get("resume_evidence", "")).split())
+    reason = " ".join(str(skill.get("reason", "")).split())
+    uncertainty = " ".join(str(skill.get("uncertainty", "")).split())
+
+    card_parts = [
+        '<div class="skill-card animate-fade-in">',
+        '<div class="flex justify-between items-center mb-1" style="gap: 0.5rem;">',
+        f'<strong style="font-size: 1rem;">{_escape_html(canonical_skill)}</strong>',
+        render_chip(chip_label, chip_class.replace("chip-", "")),
+        '</div>',
+        f'<div class="text-secondary text-muted" style="font-size: 0.875rem;">{_escape_html(reason)}</div>',
+        priority_bar,
+    ]
+    if jd_evidence:
+        card_parts.append(
+            f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.5rem;">'
+            f'JD: {_escape_html(jd_evidence[:150])}...</div>'
+        )
+    if resume_evidence:
+        card_parts.append(
+            f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">'
+            f'Resume: {_escape_html(resume_evidence[:150])}...</div>'
+        )
+    if uncertainty:
+        card_parts.append(
+            f'<div class="text-warning" style="font-size: 0.75rem; margin-top: 0.25rem;">'
+            f'⚠ {_escape_html(uncertainty)}</div>'
+        )
+    card_parts.append('</div>')
+    return "".join(card_parts)
 
 
 def render_empty_state(title: str, description: str, icon: str = "file-text") -> str:
     """Render an empty state."""
     icon_html = render_svg(icon, 48, "var(--text-muted)")
-    return f'''
+    return textwrap.dedent(f'''
     <div class="skill-card text-center" style="padding: 3rem 2rem;">
         <div class="text-muted" style="margin-bottom: 1rem;">{icon_html}</div>
-        <h3 style="margin-bottom: 0.5rem;">{title}</div>
-        <p class="text-secondary">{description}</p>
+        <h3 style="margin-bottom: 0.5rem;">{_escape_html(title)}</h3>
+        <p class="text-secondary">{_escape_html(description)}</p>
     </div>
-    '''
+    ''').replace("\n", "").strip()
 
 
-def render_section_header(title: str, subtitle: str = None, icon: str = None, action: str = None) -> str:
+def render_section_header(
+    title: str,
+    subtitle: str | None = None,
+    icon: str | None = None,
+    action: str | None = None,
+) -> str:
     """Render a section header with optional action."""
     icon_html = render_svg(icon, 24) if icon else ""
-    action_html = f'<span class="text-accent" style="font-size: 0.875rem;">{action}</span>' if action else ""
-    subtitle_html = f'<p class="text-secondary" style="margin-top: 0.25rem;">{subtitle}</p>' if subtitle else ""
-    return f'''
+    return textwrap.dedent(f'''
     <div class="flex justify-between items-start mb-2">
         <div>
             <div class="flex items-center gap-1">
                 {icon_html}
-                <h2 style="margin: 0;">{title}</h2>
+                <h2 style="margin: 0;">{_escape_html(title)}</h2>
             </div>
-            {subtitle_html}
+            {f'<p class="text-secondary" style="margin-top: 0.25rem;">{_escape_html(subtitle)}</p>' if subtitle else ""}
         </div>
-        {action_html}
+        {f'<span class="text-accent" style="font-size: 0.875rem;">{_escape_html(action)}</span>' if action else ""}
     </div>
-    '''
-
-
-# Initialize theme on import
-apply_theme()
+    ''').replace("\n", "").strip()

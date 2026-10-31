@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install project and development dependencies
+        run: uv sync --extra dev --locked --python ${{ matrix.python-version }}
+
+      - name: Lint
+        run: uv run --locked --python ${{ matrix.python-version }} ruff check --select E4,E7,E9,F src/ tests/
+
+      - name: Type check
+        run: uv run --locked --python ${{ matrix.python-version }} mypy src/
+
+      - name: Run tests with coverage
+        run: uv run --locked --python ${{ matrix.python-version }} pytest -q --cov=src/career_coach --cov-report=term-missing
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install project and audit tool
+        run: uv sync --extra dev --locked --python 3.12
+
+      - name: Audit installed dependencies
+        run: uv run --locked --python 3.12 pip-audit --progress-spinner off --skip-editable

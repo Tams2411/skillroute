@@ -6,7 +6,6 @@ from career_coach.domain.schemas import (
 from career_coach.domain.scoring import get_top_gaps
 from career_coach.domain.skill_taxonomy import load_taxonomy
 from typing import Optional
-import random
 
 
 # Learning resource templates by skill category
@@ -148,9 +147,50 @@ PROJECT_TEMPLATES = {
     },
 }
 
+SKILL_LEARNING_RESOURCES = {
+    "docker": [
+        {"title": "Docker Get Started", "url": "https://docs.docker.com/get-started/", "type": "doc", "hours": 4},
+        {"title": "Docker Guides", "url": "https://docs.docker.com/guides/", "type": "doc", "hours": 6},
+        {"title": "Docker Build Tutorials", "url": "https://docs.docker.com/build/building/", "type": "tutorial", "hours": 5},
+    ],
+    "kubernetes": [
+        {"title": "Kubernetes Basics", "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/", "type": "tutorial", "hours": 6},
+        {"title": "Kubernetes Concepts", "url": "https://kubernetes.io/docs/concepts/", "type": "doc", "hours": 8},
+        {"title": "Kubernetes Tasks", "url": "https://kubernetes.io/docs/tasks/", "type": "doc", "hours": 8},
+    ],
+    "terraform": [
+        {"title": "Terraform Tutorials", "url": "https://developer.hashicorp.com/terraform/tutorials", "type": "tutorial", "hours": 8},
+        {"title": "Terraform Language Documentation", "url": "https://developer.hashicorp.com/terraform/language", "type": "doc", "hours": 8},
+        {"title": "Terraform Associate Study Guide", "url": "https://developer.hashicorp.com/terraform/tutorials/certification-003", "type": "guide", "hours": 6},
+    ],
+    "redshift": [
+        {"title": "Amazon Redshift Getting Started", "url": "https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html", "type": "doc", "hours": 6},
+        {"title": "Redshift Database Developer Guide", "url": "https://docs.aws.amazon.com/redshift/latest/dg/welcome.html", "type": "doc", "hours": 8},
+    ],
+    "dbt": [
+        {"title": "dbt Documentation", "url": "https://docs.getdbt.com/docs/introduction", "type": "doc", "hours": 6},
+        {"title": "dbt Learn", "url": "https://learn.getdbt.com/", "type": "course", "hours": 10},
+    ],
+    "great expectations": [
+        {"title": "Great Expectations Documentation", "url": "https://docs.greatexpectations.io/docs/", "type": "doc", "hours": 6},
+    ],
+    "mlflow": [
+        {"title": "MLflow Documentation", "url": "https://mlflow.org/docs/latest/index.html", "type": "doc", "hours": 6},
+        {"title": "MLflow Tracking Quickstart", "url": "https://mlflow.org/docs/latest/ml/tracking/quickstart/", "type": "tutorial", "hours": 4},
+    ],
+    "kubeflow": [
+        {"title": "Kubeflow Documentation", "url": "https://www.kubeflow.org/docs/", "type": "doc", "hours": 8},
+        {"title": "Kubeflow Pipelines Tutorials", "url": "https://www.kubeflow.org/docs/components/pipelines/getting-started/", "type": "tutorial", "hours": 8},
+    ],
+}
+
 
 def get_resources_for_skill(skill: str, max_resources: int = 3) -> list[dict]:
     """Get learning resources for a skill based on its category."""
+    specific_resources = SKILL_LEARNING_RESOURCES.get(skill.lower())
+    if specific_resources:
+        return [dict(resource) for resource in specific_resources[:max_resources]]
+
     taxonomy = load_taxonomy()
     category = taxonomy.get_category(skill)
     
@@ -258,7 +298,7 @@ def generate_learning_plan(
                 skill=skill,
                 focus=f"Apply {skill} in a portfolio project",
                 learning_task=f"Design and plan a small project using {skill}. Review advanced patterns.",
-                practice_task=f"Build the project end-to-end. Write tests, documentation, and deploy if applicable.",
+                practice_task="Build the project end-to-end. Write tests, documentation, and deploy if applicable.",
                 deliverable=f"GitHub repo with {skill} portfolio project",
                 acceptance_criteria=f"Project demonstrates {skill} proficiency; code is clean; README explains usage",
                 estimated_hours=hours_per_week,
@@ -279,19 +319,31 @@ def generate_project_recommendations(
     
     Matches ProjectRecommendation schema: title, targeted_skills, reasoning, scope, deliverables, acceptance_criteria, estimated_hours, difficulty, limitations, stretch_goals
     """
+    if max_projects <= 0:
+        return []
+
     actionable = [g for g in gaps if g.priority >= 0.15]
-    top_gaps = get_top_gaps(actionable, n=max_projects)
-    
+    top_gaps = get_top_gaps(actionable, n=len(actionable))
+
     recommendations = []
-    
+    recommendations_by_title: dict[str, ProjectRecommendation] = {}
+
     for gap in top_gaps:
         skill = gap.canonical_skill
         template = get_project_for_skill(skill)
-        
+        project_title = template["title"] if template else f"{skill.title()} Portfolio Project"
+        existing = recommendations_by_title.get(project_title)
+        if existing:
+            existing.targeted_skills = list(dict.fromkeys([*existing.targeted_skills, skill]))
+            existing.reasoning = (
+                f"{existing.reasoning} Also addresses the {skill} skill gap."
+            )[:1000]
+            continue
+
         if template:
-            recommendations.append(ProjectRecommendation(
-                title=template["title"],
-                targeted_skills=template["skills"],
+            recommendation = ProjectRecommendation(
+                title=project_title,
+                targeted_skills=list(dict.fromkeys([*template["skills"], skill])),
                 reasoning=f"Addresses top skill gap: {skill} (priority: {gap.priority:.0%}). {gap.reason}",
                 scope=template["description"],
                 deliverables=template["deliverables"],
@@ -300,10 +352,10 @@ def generate_project_recommendations(
                 difficulty="intermediate",
                 limitations="Requires dedicated time; may need cloud credits for deployment",
                 stretch_goals=["Add CI/CD pipeline", "Write technical blog post", "Present at meetup"],
-            ))
+            )
         else:
-            recommendations.append(ProjectRecommendation(
-                title=f"{skill.title()} Portfolio Project",
+            recommendation = ProjectRecommendation(
+                title=project_title,
                 targeted_skills=[skill],
                 reasoning=f"Addresses skill gap: {skill} (priority: {gap.priority:.0%})",
                 scope=f"Build a project demonstrating {skill} proficiency with real-world scope",
@@ -313,6 +365,11 @@ def generate_project_recommendations(
                 difficulty="intermediate",
                 limitations="Scope may need adjustment based on available time",
                 stretch_goals=["Add tests", "Deploy to cloud", "Add monitoring"],
-            ))
+            )
+
+        recommendations_by_title[project_title] = recommendation
+        recommendations.append(recommendation)
+        if len(recommendations) >= max_projects:
+            break
     
     return recommendations

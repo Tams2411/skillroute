@@ -5,7 +5,6 @@ from career_coach.domain.schemas import EvidenceLevel, JobSkillRequirement, Skil
 from career_coach.domain.scoring import (
     evidence_level_to_weight,
     calculate_priority,
-    calculate_evidence_strength,
     compute_skill_gap,
     rank_gaps,
     calculate_readiness_score,

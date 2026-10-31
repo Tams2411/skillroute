@@ -1,14 +1,13 @@
 """Tracker tab UI - Application tracking."""
 
 import streamlit as st
-from career_coach.services.tracker_service import get_tracker, ApplicationTracker
-from career_coach.domain.schemas import Application, ApplicationStatus
+from career_coach.services.tracker_service import get_tracker
+from career_coach.domain.schemas import ApplicationStatus
 from career_coach.ui.theme import (
     render_section_header, render_chip, render_empty_state,
-    render_alert, render_metric
+    render_metric
 )
 from datetime import datetime
-from uuid import uuid4
 
 
 def render_tracker_tab():
@@ -19,18 +18,30 @@ def render_tracker_tab():
     # Stats
     stats = tracker.get_stats()
     
-    render_section_header("📋 Application Tracker", f"{stats['total']} applications tracked")
+    st.markdown(
+        render_section_header("📋 Application Tracker", f"{stats['total']} applications tracked"),
+        unsafe_allow_html=True,
+    )
     
     # Stats row
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        render_metric("Total", stats['total'])
+        st.markdown(render_metric("Total", stats["total"]), unsafe_allow_html=True)
     with col2:
-        render_metric("Response Rate", f"{stats['response_rate']:.1f}%")
+        st.markdown(
+            render_metric("Response Rate", f"{stats['response_rate']:.1f}%"),
+            unsafe_allow_html=True,
+        )
     with col3:
-        render_metric("Interview Rate", f"{stats['interview_rate']:.1f}%")
+        st.markdown(
+            render_metric("Interview Rate", f"{stats['interview_rate']:.1f}%"),
+            unsafe_allow_html=True,
+        )
     with col4:
-        render_metric("Offer Rate", f"{stats['offer_rate']:.1f}%")
+        st.markdown(
+            render_metric("Offer Rate", f"{stats['offer_rate']:.1f}%"),
+            unsafe_allow_html=True,
+        )
     
     # Status breakdown
     if stats['by_status']:
@@ -38,8 +49,11 @@ def render_tracker_tab():
         status_cols = st.columns(len(stats['by_status']))
         for i, (status, count) in enumerate(stats['by_status'].items()):
             with status_cols[i]:
-                render_chip(status.replace('_', ' ').title(), "teal")
-                st.metric("", count)
+                st.markdown(
+                    render_chip(status.replace("_", " ").title(), "teal"),
+                    unsafe_allow_html=True,
+                )
+                st.metric("Applications", count, label_visibility="collapsed")
     
     st.markdown("---")
     
@@ -54,10 +68,15 @@ def render_tracker_tab():
                 status = st.selectbox("Status", [s.value for s in ApplicationStatus], index=0)
                 applied_date = st.date_input("Applied Date", datetime.now())
             
-            jd_text = st.text_area("Job Description (optional)", height=100, placeholder="Paste JD here for future reference...")
+            jd_text = st.text_area(
+                "Job Description (optional)",
+                height=100,
+                max_chars=10_000,
+                placeholder="Paste JD here for future reference...",
+            )
             notes = st.text_area("Notes", height=80, placeholder="Referral? Recruiter contact? Salary range?")
             
-            if st.form_submit_button("Add Application", type="primary", use_container_width=True):
+            if st.form_submit_button("Add Application", type="primary", width="stretch"):
                 if company and role:
                     tracker.create(
                         company=company,

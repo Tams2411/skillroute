@@ -1,14 +1,16 @@
 """Interview tab UI - Mock interview practice."""
 
 import streamlit as st
+
+from career_coach.domain.schemas import InterviewCriterion, InterviewRubricScore, SkillGap
 from career_coach.services.interview_service import (
-    generate_interview_session, get_rubric_for_question,
-    evaluate_answer, calculate_session_score
+    calculate_session_score,
+    evaluate_answer,
+    generate_interview_session,
+    get_rubric_for_question,
 )
-from career_coach.ui.theme import (
-    render_section_header, render_chip, render_empty_state,
-    render_alert, render_svg
-)
+from career_coach.ui.theme import render_alert, render_empty_state, render_section_header
+from career_coach.ui.navigation import navigate_to
 
 
 def render_interview_tab():
@@ -21,15 +23,21 @@ def render_interview_tab():
             description="Complete the Intake tab first to generate interview questions tailored to your skill gaps.",
             icon="file-text",
         ), unsafe_allow_html=True)
-        if st.button("Go to Intake", key="goto_intake_interview"):
-            st.session_state.active_tab = 0
-            st.rerun()
+        st.button(
+            "Go to Intake",
+            key="goto_intake_interview",
+            on_click=navigate_to,
+            args=("Intake",),
+        )
         return
     
-    gaps = results.get("gaps", [])
+    gaps = [SkillGap.model_validate(gap) for gap in results.get("gaps", [])]
     
     if not gaps:
-        render_alert("🎉 No significant skill gaps found! You're well-prepared for interviews.", "success")
+        st.markdown(
+            render_alert("🎉 No significant skill gaps found! You're well-prepared for interviews.", "success"),
+            unsafe_allow_html=True,
+        )
         return
     
     # Session management
@@ -37,7 +45,13 @@ def render_interview_tab():
     
     if sessions is None:
         # Configuration
-        render_section_header("🎯 Interview Session Setup", "Generate questions targeting your top skill gaps")
+        st.markdown(
+            render_section_header(
+                "🎯 Interview Session Setup",
+                "Generate questions targeting your top skill gaps",
+            ),
+            unsafe_allow_html=True,
+        )
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -47,7 +61,12 @@ def render_interview_tab():
         with col3:
             questions_per_skill = st.slider("Questions per Skill", 1, 3, 2, key="interview_qps")
         
-        if st.button("Generate Interview Session", type="primary", key="gen_interview_btn", use_container_width=True):
+        if st.button(
+            "Generate Interview Session",
+            type="primary",
+            key="gen_interview_btn",
+            width="stretch",
+        ):
             with st.spinner("Generating tailored interview questions..."):
                 sessions = generate_interview_session(
                     gaps,
@@ -103,7 +122,11 @@ def render_interview_tab():
     
     # Rubric display
     with st.expander("📋 Evaluation Rubric", expanded=False):
-        rubric = get_rubric_for_question(session.question, session.category)
+        rubric = get_rubric_for_question(
+            session.question,
+            session.category,
+            session.question_type,
+        )
         for criterion, details in rubric.items():
             st.markdown(f"**{criterion.value.replace('_', ' ').title()}** ({details['weight']:.0%})")
             st.caption(details['description'])
@@ -128,7 +151,14 @@ def render_interview_tab():
         
         if st.button("Save Evaluation", key=f"save_eval_{current_idx}"):
             session.scores = [
-                type('Score', (), {'criterion': c, 'score': s, 'evidence': '', 'improvement_action': ''})()
+                InterviewRubricScore(
+                    criterion=InterviewCriterion(c),
+                    score=s,
+                    evidence=session.answer.strip()[:1000],
+                    improvement_action=(
+                        f"Practice the {c.replace('_', ' ')} part of this answer using the rubric."
+                    ),
+                )
                 for c, s in scores.items()
             ]
             session.completed = True
@@ -157,7 +187,10 @@ def render_interview_tab():
     # Results
     if st.session_state.get("show_interview_results"):
         st.markdown("---")
-        render_section_header("📈 Interview Results", "Your self-evaluation summary")
+        st.markdown(
+            render_section_header("📈 Interview Results", "Your self-evaluation summary"),
+            unsafe_allow_html=True,
+        )
         
         score_data = calculate_session_score(sessions)
         

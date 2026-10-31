@@ -1,303 +1,117 @@
 # SkillRoute Architecture
 
 > **Version:** 0.1.0
-> **Status:** Active development (hackathon MVP)
-> **Last Updated:** 2026-10-31
+> **Status:** Local-first MVP; optional hosted demo
+> **Last updated:** 2026-10-31
 
-## System Overview
+## Overview
 
-SkillRoute is a **modular monolith** — a single deployable Streamlit application with clean internal boundaries between domain, services, and UI layers. Designed for hackathon speed with production-grade foundations.
+SkillRoute is a local-first Streamlit application organized as a modular Python package. It has no public API, database service, authentication, or active AI-provider integration. Analysis is deterministic and runs in the app process. Streamlit Community Cloud can host an unauthenticated demo, but it does not make the app a private or persistent multi-user service.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      app.py (Streamlit)                         │
-│  ┌────────┬──────────┬──────┬──────────┬──────────┬─────────┐  │
-│  │ Intake │Assessment│ Plan │ Projects │Interview │ Tracker │  │
-│  └────┬───┴────┬─────┴──┬───┴────┬────┴────┬────┴────┬───┘  │
-└───────┼────────┼────────┼────────┼────────┼────────┼────────┘
-        │        │        │        │        │        │
-        ▼        ▼        ▼        ▼        ▼        ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SkillGapService (Orchestrator)               │
-│  resume_parser → jd_parser → skill_extractor → scoring          │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-        ┌──────────────────┼──────────────────┐
-        ▼                  ▼                  ▼
-┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-│ PlanGenerator │  │ InterviewSvc  │  │ TrackerSvc    │
-└───────────────┘  └───────────────┘  └───────────────┘
+```text
+app.py (six sidebar-navigated pages)
+  ├─ Intake → ResumeParser + JDParser + SkillExtractor
+  │             └─ SkillGapService → ranked gap data
+  ├─ Assessment → explainable gap and evidence display
+  ├─ Plan → learning tasks and project recommendations
+  ├─ Interview → static questions and self-evaluation rubric
+  ├─ Tracker → ApplicationTracker → data/applications.json (shared plaintext file)
+  └─ Dashboard → analysis summary + tracker statistics
 ```
 
-## Layer Responsibilities
+## Modules
 
-### Domain Layer (`src/career_coach/domain/`)
+| Module | Responsibility |
+|---|---|
+| `domain/schemas.py` | Pydantic contracts for evidence, gaps, tasks, interviews, and applications |
+| `domain/skill_taxonomy.py` | Canonical skills and aliases used by extraction |
+| `domain/scoring.py` | Evidence weights, gap priority, ranking, and readiness calculation |
+| `services/resume_parser.py` | PDF, DOCX, and TXT extraction; PDF fallback; upload size/page checks |
+| `services/jd_parser.py` | Job-description section detection and exact taxonomy/alias matching |
+| `services/skill_extractor.py` | Skill matching and evidence-level inference |
+| `services/skill_gap_service.py` | Parsing/extraction/scoring orchestration |
+| `services/plan_generator.py` | Template-based learning tasks and project recommendations |
+| `services/interview_service.py` | Static question selection and rubric evaluation |
+| `services/tracker_service.py` | Local JSON-backed application CRUD and statistics |
+| `ui/*.py` | Intake, assessment, plan, interview, tracker, dashboard, navigation, and shared state |
 
-| File | Purpose |
-|------|---------|
-| `schemas.py` | All Pydantic models — single source of truth for data contracts |
-| `skill_taxonomy.py` | `SkillTaxonomy` class — canonical skill catalog with alias resolution |
-| `scoring.py` | Pure functions: priority formula, evidence weights, gap ranking, readiness |
+## Analysis Contract
 
-**Key invariants:**
-- No I/O, no external deps, no side effects
-- All functions are pure and deterministic
-- Fully testable without mocks
+`SkillGapService.analyze()` returns a dictionary containing:
 
-### Services Layer (`src/career_coach/services/`)
+- `gaps`, `all_gaps`, `top_gaps`, and `actionable_gaps` as serialized skill-gap records
+- `matched_skills` and `missing_skills`
+- `readiness_score` (0–1) and `readiness_percentage`
+- extraction counts and metadata
 
-| Service | Input | Output | External Deps |
-|---------|-------|--------|---------------|
-| `ResumeParser` | File bytes | Text + metadata | `pypdf`, `pdfplumber`, `python-docx` |
-| `JDParser` | Raw JD text | Structured sections + skills | `difflib` (stdlib) |
-| `SkillExtractor` | Text + taxonomy | `SkillMatch[]` with evidence | `SkillTaxonomy` |
-| `SkillGapService` | Resume + JD | `GapAnalysisResult` | All above |
-| `PlanGenerator` | `GapAnalysisResult` | `WeeklyPlan[]`, `ProjectSpec[]` | — |
-| `InterviewService` | `GapAnalysisResult` | `InterviewSession` | — |
-| `TrackerService` | User actions | `ApplicationRecord[]` | JSON file I/O |
+The Plan and Interview pages validate serialized gap records back into `SkillGap` models before passing them to their services.
 
-### UI Layer (`src/career_coach/ui/`)
+### Priority and readiness
 
-| File | Responsibility |
-|------|----------------|
-| `theme.py` | CSS variables, component renderers, SVG icons, design tokens |
-| `intake.py` | Resume upload, JD input, analysis trigger, results rendering |
-| `plan.py` | Duration selector, weekly tasks, project cards |
-| `interview.py` | Session generation, rubric display, self-eval |
-| `tracker.py` | CRUD forms, status filter, stats cards |
-| `dashboard.py` | Metrics, charts, quick actions |
-
-**UI Principles:**
-- No business logic in UI — only presentation
-- All data flows through session state
-- Theme functions are pure renderers (no `st.*` calls inside theme)
-
-### Config (`src/career_coach/config.py`)
-
-`Settings` class via Pydantic Settings:
-- Loads from `.env` (see `.env.example`)
-- Type-safe, validated, documented
-- Single source for all environment configuration
-
-## Data Models (Core)
-
-### SkillEvidence
-```python
-canonical_skill: str
-evidence_level: EvidenceLevel  # NONE | MENTIONED | DEMONSTRATED | VERIFIED
-source: str                    # "resume" | "jd"
-supporting_evidence: str       # Quote/context from source
-user_confirmed: bool
+```text
+priority = role_relevance × (1 − evidence_strength) × extraction_confidence
 ```
 
-### SkillGap
-```python
-skill: str
-priority: float                # R × (1-E) × C
-jd_requirement: JobSkillRequirement
-resume_evidence: SkillEvidence | None
-gap_type: GapType              # MISSING | WEAK_EVIDENCE | OUTDATED
-rationale: str
-```
+JD importance informs role relevance. Evidence weights are configured as:
 
-### GapAnalysisResult
-```python
-gaps: list[SkillGap]
-matched_skills: list[str]
-missing_skills: list[str]
-readiness_score: float         # 0-100
-summary: str
-```
+| Evidence level | Weight |
+|---|---:|
+| NONE | 0.0 |
+| MENTIONED | 0.2 |
+| DEMONSTRATED | 0.4 |
+| VERIFIED | 0.9 |
 
-## Priority Formula
+Readiness is a weighted evidence-coverage heuristic. Neither score predicts hiring outcomes or establishes proficiency.
 
-```
-priority = relevance × (1 - evidence_weight) × criticality
-```
+## Persistence and Data Flow
 
-| Evidence Level | Weight |
-|----------------|--------|
-| NONE           | 0.0    |
-| MENTIONED      | 0.2    |
-| DEMONSTRATED   | 0.4    |
-| VERIFIED       | 0.9    |
+| Data | Storage |
+|---|---|
+| Skill taxonomy | `data/skill_taxonomy.json` |
+| Application records and tracker notes/JD text | `data/applications.json` |
+| Current analysis and practice state | Streamlit session memory |
+| Uploaded resume during parsing | Temporary file, removed after parsing |
 
-- **Relevance (R):** 0-1, how central the skill is to the JD
-- **Evidence (E):** Weight from table above
-- **Criticality (C):** 0-1, from JD section (REQUIREMENTS=1.0, PREFERRED=0.6)
+There is no SQL database configured or used. Resume/JD analysis is not persisted as a profile, and the current application workflow makes no external AI requests.
 
-## Skill Taxonomy
+On Streamlit Community Cloud, the JSON tracker remains shared by the app instance and local filesystem persistence is not guaranteed. The app has no authentication, so hosted use is demonstration-only and must not contain sensitive data.
 
-`data/skill_taxonomy.json` — 50+ curated skills across 11 categories:
+## Configuration and Input Limits
 
-- `programming` — Python, SQL, JavaScript, TypeScript, Go, Rust
-- `data` — Pandas, NumPy, Spark, Airflow, dbt, Snowflake
-- `ml` — PyTorch, TensorFlow, scikit-learn, XGBoost, MLOps
-- `cloud` — AWS, GCP, Azure, Kubernetes, Terraform
-- `devops` — Docker, CI/CD, GitHub Actions, Prometheus, Grafana
-- `frontend` — React, Vue, Next.js, Tailwind, CSS
-- `backend` — FastAPI, Django, Node.js, PostgreSQL, Redis
-- `mobile` — React Native, Flutter, Swift, Kotlin
-- `testing` — pytest, Playwright, Cypress, Jest
-- `soft_skills` — Communication, Leadership, Problem Solving
-- `domain` — FinTech, HealthTech, EdTech, E-commerce
+Pydantic Settings reads optional values from `.env`. Defaults include:
 
-Each skill has:
-- `canonical` — Display name
-- `aliases` — Alternate names for fuzzy matching
-- `category` — For resource mapping
-- `related` — For project recommendations
+- Uploaded resume file: 5 MB maximum; PDF: 10 pages maximum
+- Pasted/extracted resume: 50,000 characters maximum
+- Job description: 10,000 characters maximum
+- Evidence weights: listed above
 
-## Fuzzy Matching
+Streamlit's upload cap is configured to 5 MB in `.streamlit/config.toml`. No separate PDF extraction timeout is implemented.
 
-`difflib.SequenceMatcher` with threshold **0.85** for alias matching.
+## Safety Boundaries
 
-Flow:
-1. Extract tokens from text (split on non-alphanumeric)
-2. For each token, find best match in taxonomy aliases
-3. If ratio ≥ 0.85 → map to canonical skill
-4. Infer evidence level from context patterns
+- Resume format is restricted to PDF, DOCX, or TXT; file size and PDF page count are bounded.
+- Unexpected analysis errors are shown without stack traces; parser logs omit resume filenames and contents.
+- Dynamic text interpolated into custom HTML components is HTML-escaped.
+- Uploaded files are processed locally and the temporary file is cleaned up after parsing.
+- The app has no authentication or rate limiting. Bind it to localhost and do not expose it to untrusted users or networks.
+- Tracker JSON is plaintext, shared by app users, and does not provide concurrency locking.
 
-## Persistence
+These controls do not sandbox PDF/DOCX parsers. Keep dependencies current and process only files you trust.
 
-| Data | Storage | Location |
-|------|---------|----------|
-| Applications | JSON file | `data/applications.json` |
-| Skill taxonomy | JSON file | `data/skill_taxonomy.json` |
-| Session state | Streamlit session | In-memory |
-| Resume uploads | Temp files | `data/uploads/` (auto-cleanup) |
-| Database (future) | SQLite/PostgreSQL | `DATABASE_URL` |
+## Verification
 
-**No migrations needed** — JSON is schema-less, Pydantic validates on load.
-
-## Configuration Reference
-
-All via `.env` (loaded by Pydantic Settings):
+Run the locked CI checks from the repository root:
 
 ```bash
-# App
-APP_ENV=development
-DEBUG=true
-SECRET_KEY=your-secret-key
-
-# Database
-DATABASE_URL=sqlite:///./data/app.db
-
-# Optional AI
-OPENROUTER_API_KEY=
-OPENAI_API_KEY=
-AI_MODEL=anthropic/claude-3.5-sonnet
-FALLBACK_MODEL=openai/gpt-4o-mini
-
-# Limits
-MAX_PDF_PAGES=10
-MAX_PDF_SIZE_MB=5
-
-# Streamlit
-STREAMLIT_PORT=8501
+uv sync --extra dev --locked
+uv run ruff check --select E4,E7,E9,F src/ tests/
+uv run mypy src/
+uv run pytest -q --cov=src/career_coach --cov-report=term-missing
+uv run pip-audit --progress-spinner off --skip-editable
 ```
 
-## Deployment
+GitHub Actions runs these checks across Python 3.11 and 3.12. Streamlit AppTests cover sample analysis, plans/interviews, sidebar navigation, input state, safety limits, HTML escaping, and tracker persistence; there is no full browser E2E suite.
 
-### Local Development
-```bash
-streamlit run app.py --server.port 8501
-```
+## Planned Evolution
 
-### Streamlit Cloud (Free)
-1. Push to GitHub
-2. Connect repo at https://share.streamlit.io
-3. Set `SECRET_KEY` in secrets
-4. Deploy — auto-detects `app.py`
-
-### Docker (Production)
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY pyproject.toml .
-RUN pip install -e .
-COPY . .
-EXPOSE 8501
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
-```
-
-### Render / Fly.io / Railway
-- Same Dockerfile works
-- Set `DATABASE_URL` to managed PostgreSQL
-- Add `SECRET_KEY` as env var
-
-## Security
-
-- **No hardcoded secrets** — all via `.env`
-- **File upload validation** — MIME type + size + page count limits
-- **Path traversal protection** — temp files in dedicated upload dir
-- **SQL injection** — SQLAlchemy ORM only, no raw SQL
-- **XSS** — Streamlit auto-escapes; `unsafe_allow_html` only for trusted theme CSS
-
-## Performance
-
-| Operation | Target | Current |
-|-----------|--------|---------|
-| Resume parse (PDF, 5MB) | < 2s | ~1.2s |
-| JD parse | < 500ms | ~200ms |
-| Gap analysis | < 1s | ~600ms |
-| Plan generation | < 500ms | ~300ms |
-| Cold start (Streamlit) | < 10s | ~8s |
-
-**Optimizations:**
-- LRU cache on `ResumeParser` (max 32 entries)
-- Taxonomy loaded once at startup (singleton)
-- No redundant computations in UI render loop
-
-## Testing Strategy
-
-```
-tests/
-├── conftest.py                 # Shared fixtures
-├── unit/
-│   ├── test_scoring.py         # Pure functions — 20 tests
-│   ├── test_skill_taxonomy.py  # Taxonomy lookup — 10 tests
-│   └── (planned: test_extractors, test_services)
-└── integration/                # (planned: full pipeline)
-```
-
-- **Unit:** Domain + scoring (pure functions, no mocks needed)
-- **Integration:** Service orchestration with sample data
-- **E2E:** Streamlit script runner (planned)
-
-## Extensibility Points
-
-| Extension | How |
-|-----------|-----|
-| New skill category | Add to `data/skill_taxonomy.json` + `SkillCategory` enum |
-| New evidence level | Extend `EvidenceLevel` enum + add weight in `scoring.py` |
-| New parser format | Implement `BaseParser` protocol in `resume_parser.py` |
-| New JD section | Add to `JDSectionType` enum + regex in `jd_parser.py` |
-| New tab | Create `ui/new_tab.py` + register in `app.py` |
-| AI enhancement | Implement `LLMExtractor` protocol in `skill_extractor.py` |
-
-## Decision Log (Key ADRs)
-
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-10-31 | Modular monolith | Hackathon MVP, single-user, simpler deploy |
-| 2026-10-31 | SQLite local | Zero-config dev; PostgreSQL later for demo |
-| 2026-10-31 | Deterministic core + optional AI | Works without API keys; pluggable enhancement |
-| 2026-10-31 | Pydantic Settings + .env | Never hardcode secrets; type-safe config |
-| 2026-10-31 | In-memory LRU cache | MVP simplicity; disk cache optional later |
-| 2026-10-31 | Taxonomy-driven normalization | OSS pattern from resume-matcher |
-| 2026-10-31 | Fuzzy threshold 0.85 | Balances recall/precision per OSS pattern |
-| 2026-10-31 | Evidence levels 4-tier | Guide requirement for transparent rationale |
-| 2026-10-31 | Professional dark theme | "Doesn't look like AI slop" — intentional design |
-| 2026-10-31 | Dual-column intake | Clear separation resume vs JD |
-| 2026-10-31 | JSON file storage for tracker | Zero-config persistence for hackathon |
-
-## Future Architecture Evolution
-
-| Phase | Change | Trigger |
-|-------|--------|---------|
-| Post-hackathon | Extract services to FastAPI | Multi-user, mobile app, webhooks |
-| Scale | PostgreSQL + Alembic | Concurrent users, data durability |
-| AI | LangGraph/LangChain orchestration | Complex multi-step reasoning |
-| Enterprise | Auth (Auth0/Clerk), RBAC, audit logs | Team/org features |
-| Mobile | React Native / Flutter | Native mobile experience |
+Hosted persistence, authentication, semantic matching, AI-assisted analysis, and production monitoring are not part of the current MVP. Add them only with explicit data-flow, privacy, and deployment requirements.
