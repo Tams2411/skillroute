@@ -9,7 +9,7 @@ SkillRoute is an early local MVP. These constraints describe the current impleme
 - **Heuristic parsing:** Resume evidence and job-description sections are inferred with text rules. Unusual layouts or wording can be missed or classified incorrectly.
 - **English-focused:** The taxonomy and extraction patterns are designed for English text.
 - **Heuristic scores:** Priority and readiness are decision-support signals, not measures of hiring probability or a validated assessment of competence.
-- **Static interview content:** Questions come from templates. Interview evaluation is self-reported, not independently validated.
+- **Static interview content:** Questions come from templates. Deterministic interview scoring is self-reported. Optional Gemini feedback is advisory, may be inaccurate, and is not an independently validated assessment.
 - **Generic learning recommendations:** Plans and projects are template-based and may need adjustment for a user's schedule, budget, or available resources.
 
 ## Files, Storage, and Privacy
@@ -17,9 +17,10 @@ SkillRoute is an early local MVP. These constraints describe the current impleme
 - **No authentication or access control:** Anyone who can reach the app can use it. Run locally on a trusted machine; the hosted version is an unauthenticated demo, not a private workspace.
 - **Shared plaintext tracker:** Application records, notes, and saved job-description text are stored in plaintext JSON at `data/applications.json`. Users of the same running app instance share this file. It is not safe for concurrent writers and has no built-in export/import screen.
 - **Hosted storage is ephemeral:** Streamlit Community Cloud may discard local files when the app restarts or rebuilds. Do not rely on it for durable tracker data.
+- **User-supplied AI credentials:** Gemini keys are session-only from the app's perspective, but a hosted app operator can access server memory. The UI provides a clear-key action; keys are not stored in files or application logs.
 - **Transient analysis state:** Resume/JD analysis is kept in Streamlit session state while the session is active; it is not saved as a persistent profile.
 - **Resume handling:** Uploaded files are processed from a temporary file that is removed after parsing. Extracted text remains in process memory for the session.
-- **No external AI processing:** The current workflow does not send resume or job-description text to a model provider. Do not infer this will remain true if an AI integration is added later.
+- **Optional external AI processing:** The app's deterministic analysis does not call an AI provider. If a user enters a Gemini key, checks the consent box, and requests feedback, the interview answer, question, target role, and skill are sent through the app server to Google. Resume and JD text are not included. The app does not persist or log the key, but it resides in server-side Streamlit session memory; use this only on a host you trust. Provider terms, quota, retention, and charges are outside the app's control.
 - **No deletion/export workflow for all data:** Remove tracker records in the app or delete the local JSON file; clearing the browser session does not remove tracker data.
 
 ## Parsing and Resource Limits

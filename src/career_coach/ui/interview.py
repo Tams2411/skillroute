@@ -1,16 +1,25 @@
 """Interview tab UI - Mock interview practice."""
 
+import logging
+
 import streamlit as st
 
 from career_coach.domain.schemas import InterviewCriterion, InterviewRubricScore, SkillGap
+from career_coach.services.gemini_interview_service import (
+    GeminiFeedbackError,
+    GeminiInterviewFeedback,
+    generate_gemini_interview_feedback,
+)
 from career_coach.services.interview_service import (
     calculate_session_score,
     evaluate_answer,
     generate_interview_session,
     get_rubric_for_question,
 )
-from career_coach.ui.theme import render_alert, render_empty_state, render_section_header
 from career_coach.ui.navigation import navigate_to
+from career_coach.ui.theme import render_alert, render_empty_state, render_section_header
+
+logger = logging.getLogger(__name__)
 
 
 def render_interview_tab():
@@ -76,6 +85,7 @@ def render_interview_tab():
                 )
                 st.session_state.interview_sessions = sessions
                 st.session_state.interview_current = 0
+                st.session_state.interview_ai_feedback = {}
             st.success(f"Generated {len(sessions)} questions!")
             st.rerun()
         return
@@ -85,6 +95,7 @@ def render_interview_tab():
         st.warning("No questions generated. Try different parameters.")
         if st.button("Regenerate", key="regen_interview"):
             st.session_state.interview_sessions = None
+            st.session_state.interview_ai_feedback = {}
             st.rerun()
         return
     
@@ -114,11 +125,13 @@ def render_interview_tab():
         height=200,
         placeholder="Type your answer here... Use STAR format for behavioral questions.",
         key=f"answer_{current_idx}",
+        max_chars=5000,
     )
-    
+
     # Update answer
     if answer != session.answer:
         session.answer = answer
+        st.session_state.interview_ai_feedback.pop(str(session.id), None)
     
     # Rubric display
     with st.expander("📋 Evaluation Rubric", expanded=False):
@@ -148,7 +161,60 @@ def render_interview_tab():
                 help=eval_result["rubric"][criterion]["description"]
             )
             scores[criterion] = score
-        
+
+        st.markdown("#### Optional AI feedback")
+        st.caption(
+            "Gemini suggestions are advisory, may be inaccurate, and do not replace your "
+            "self-evaluation."
+        )
+        api_key = st.session_state.get("gemini_api_key", "")
+        consented = st.session_state.get("gemini_interview_consent", False)
+        if not api_key:
+            st.info("Enter a Gemini API key in the sidebar to request optional feedback.")
+        elif not consented:
+            st.info("Use the sidebar consent checkbox before sending interview content to Gemini.")
+        elif st.button("Get Gemini feedback", key=f"gemini_feedback_{current_idx}"):
+            try:
+                with st.spinner("Requesting advisory feedback from Gemini..."):
+                    feedback = generate_gemini_interview_feedback(
+                        api_key,
+                        session,
+                        session.answer,
+                    )
+                st.session_state.interview_ai_feedback[str(session.id)] = {
+                    "feedback": feedback,
+                    "error": None,
+                }
+            except GeminiFeedbackError as exc:
+                logger.warning("Gemini interview feedback unavailable (%s)", exc.code)
+                st.session_state.interview_ai_feedback[str(session.id)] = {
+                    "feedback": None,
+                    "error": exc.public_message,
+                }
+            st.rerun()
+
+        feedback_entry = st.session_state.interview_ai_feedback.get(str(session.id))
+        if feedback_entry:
+            if feedback_entry["error"]:
+                st.warning(
+                    f"Gemini feedback is unavailable: {feedback_entry['error']} "
+                    "Your deterministic self-evaluation remains available."
+                )
+            else:
+                feedback = GeminiInterviewFeedback.model_validate(feedback_entry["feedback"])
+                with st.container(border=True):
+                    st.markdown("**Gemini suggestions**")
+                    st.write(feedback.overall_feedback)
+                    for suggestion in feedback.scores:
+                        st.markdown(
+                            f"**{suggestion.criterion.value.replace('_', ' ').title()}: "
+                            f"{suggestion.score}/5**"
+                        )
+                        st.caption(f"Evidence: {suggestion.evidence}")
+                        st.write(f"Try next: {suggestion.improvement_action}")
+                    st.markdown("**Practice next**")
+                    st.write(feedback.practice_task)
+
         if st.button("Save Evaluation", key=f"save_eval_{current_idx}"):
             session.scores = [
                 InterviewRubricScore(
@@ -208,5 +274,6 @@ def render_interview_tab():
         
         if st.button("Start New Session", key="new_interview"):
             st.session_state.interview_sessions = None
+            st.session_state.interview_ai_feedback = {}
             st.session_state.show_interview_results = False
             st.rerun()

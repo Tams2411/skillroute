@@ -4,6 +4,17 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from career_coach.domain.schemas import (
+    InterviewCriterion,
+    InterviewRubricScore,
+    InterviewSession,
+    SkillGap,
+)
+from career_coach.services.gemini_interview_service import (
+    GeminiFeedbackError,
+    GeminiInterviewFeedback,
+)
+
 
 def test_sample_workflow_generates_assessment_plan_and_interview():
     app_path = Path(__file__).parents[2] / "app.py"
@@ -11,7 +22,7 @@ def test_sample_workflow_generates_assessment_plan_and_interview():
     intake_app = AppTest.from_file(str(app_path), default_timeout=15).run()
     assert not intake_app.exception
 
-    intake_app.sidebar.button[0].click().run()
+    intake_app.button(key="load_sample_data_btn").click().run()
     assert len(intake_app.session_state["resume_text"]) > 0
     assert len(intake_app.session_state["jd_text"]) > 0
 
@@ -135,3 +146,135 @@ def test_intake_inputs_survive_navigation_away_and_back():
     app.run()
     assert app.text_area(key="_resume_text").value == "Python and SQL experience"
     assert app.text_area(key="_jd_text").value == "Required Skills:\n- Terraform"
+
+
+def test_interview_feedback_is_optional_and_defaults_to_deterministic():
+    app_path = Path(__file__).parents[2] / "app.py"
+    gap = SkillGap(
+        canonical_skill="terraform",
+        role_relevance=0.8,
+        evidence_strength=0.0,
+        extraction_confidence=1.0,
+        priority=0.8,
+        reason="Required for the role",
+    )
+    session = InterviewSession(
+        target_role="Platform Engineer",
+        category="terraform",
+        question="How would you organize Terraform state?",
+        answer="I would isolate state by environment.",
+    )
+
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["analysis_results"] = {"gaps": [gap.model_dump()]}
+    app.session_state["interview_sessions"] = [session]
+    app.session_state["active_tab"] = "Interview"
+    app.run()
+
+    assert not app.exception
+    assert app.session_state["gemini_api_key"] == ""
+    assert app.session_state["gemini_interview_consent"] is False
+    assert not any(button.label == "Get Gemini feedback" for button in app.button)
+
+
+def test_gemini_credentials_can_be_cleared_from_session():
+    app_path = Path(__file__).parents[2] / "app.py"
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["gemini_api_key"] = "temporary-user-key"
+    app.session_state["gemini_interview_consent"] = True
+    app.run()
+
+    app.button(key="clear_gemini_credentials").click().run()
+
+    assert not app.exception
+    assert app.session_state["gemini_api_key"] == ""
+    assert app.session_state["gemini_interview_consent"] is False
+
+
+def test_gemini_feedback_renders_as_advisory_without_replacing_self_scores(monkeypatch):
+    app_path = Path(__file__).parents[2] / "app.py"
+    gap = SkillGap(
+        canonical_skill="terraform",
+        role_relevance=0.8,
+        evidence_strength=0.0,
+        extraction_confidence=1.0,
+        priority=0.8,
+        reason="Required for the role",
+    )
+    session = InterviewSession(
+        target_role="Platform Engineer",
+        category="terraform",
+        question="How would you organize Terraform state?",
+        answer="I would isolate state by environment.",
+    )
+    feedback = GeminiInterviewFeedback(
+        scores=[
+            InterviewRubricScore(
+                criterion=InterviewCriterion.STRUCTURE_CLARITY,
+                score=4,
+                evidence="The answer is concise.",
+                improvement_action="Explain the environment boundary.",
+            )
+        ],
+        overall_feedback="A useful starting point.",
+        practice_task="Add one example of an environment boundary.",
+    )
+    monkeypatch.setattr(
+        "career_coach.ui.interview.generate_gemini_interview_feedback",
+        lambda *args: feedback,
+    )
+
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["analysis_results"] = {"gaps": [gap.model_dump()]}
+    app.session_state["interview_sessions"] = [session]
+    app.session_state["gemini_api_key"] = "test-key"
+    app.session_state["gemini_interview_consent"] = True
+    app.session_state["active_tab"] = "Interview"
+    app.run()
+    app.button(key="gemini_feedback_0").click().run()
+
+    assert not app.exception
+    assert app.session_state["interview_ai_feedback"][str(session.id)]["feedback"] == feedback
+    assert any("Gemini suggestions" in element.value for element in app.markdown)
+
+
+def test_gemini_provider_error_keeps_deterministic_interview_available(monkeypatch):
+    app_path = Path(__file__).parents[2] / "app.py"
+    gap = SkillGap(
+        canonical_skill="terraform",
+        role_relevance=0.8,
+        evidence_strength=0.0,
+        extraction_confidence=1.0,
+        priority=0.8,
+        reason="Required for the role",
+    )
+    session = InterviewSession(
+        target_role="Platform Engineer",
+        category="terraform",
+        question="How would you organize Terraform state?",
+        answer="I would isolate state by environment.",
+    )
+
+    def fail_with_provider_error(*args):
+        raise GeminiFeedbackError("rate_limited", "Gemini quota or rate limit reached.")
+
+    monkeypatch.setattr(
+        "career_coach.ui.interview.generate_gemini_interview_feedback",
+        fail_with_provider_error,
+    )
+
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["analysis_results"] = {"gaps": [gap.model_dump()]}
+    app.session_state["interview_sessions"] = [session]
+    app.session_state["gemini_api_key"] = "test-key"
+    app.session_state["gemini_interview_consent"] = True
+    app.session_state["active_tab"] = "Interview"
+    app.run()
+    app.button(key="gemini_feedback_0").click().run()
+
+    assert not app.exception
+    assert any(
+        "deterministic self-evaluation remains available" in item.value
+        for item in app.warning
+    )
+    assert any("not an automatic grade" in item.value for item in app.caption)
