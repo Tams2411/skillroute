@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added skill-specific learning resources and merged duplicate project recommendations
 
 ### Fixed
+- Improved primary button label contrast, including the disabled Analyze Skill Gaps state
 - Exposed the analysis `gaps` data consumed by the plan, interview, and dashboard tabs
 - Avoided logging resume filenames/content or displaying unexpected exception tracebacks
 - Fixed skill-card HTML rendering and applied the CSS theme after Streamlit page setup

@@ -49,6 +49,7 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 - **Deterministic by default** — Core resume/JD analysis and scoring run locally without an AI provider.
 - **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.
 - **Validated inputs** — Upload size/page limits and pasted-text limits are enforced.
+- **Accessible actions** — Primary button labels remain high-contrast in enabled and disabled states.
 - **Local persistence** — Application records are stored in `data/applications.json`.
 - **Six-page Streamlit UI** — Sidebar navigation for intake, assessment, learning plan, interview practice, tracker, and dashboard.
 
