@@ -72,6 +72,8 @@ Weighted evidence coverage is a heuristic summary of evidence against extracted 
 
 Resume evidence records preserve their source and extraction confidence separately from evidence strength. Extraction confidence describes the system's certainty that it found a skill mention; it does not verify the user's proficiency and does not change the evidence weight or readiness calculation.
 
+JD skill requirements retain their originating context (`required`, `preferred`, `skills`, `responsibility`, `experience`, or `education`). Context-specific importance weights affect ranking; benefits remain excluded, and duplicate mentions retain the strongest applicable requirement context.
+
 ## Persistence and Data Flow
 
 | Data | Storage |

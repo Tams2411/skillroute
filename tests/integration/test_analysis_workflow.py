@@ -75,6 +75,18 @@ def test_legacy_gap_records_default_new_provenance_fields():
     assert legacy_gap.resume_extraction_confidence == 0.0
 
 
+def test_contextual_jd_skill_reaches_assessment_with_its_requirement_type():
+    results = SkillGapService().analyze(
+        resume_text="Built production services using Python.",
+        jd_text="Responsibilities:\n- Build and maintain services using Docker",
+    )
+
+    docker = next(gap for gap in results["gaps"] if gap["canonical_skill"] == "docker")
+    assert docker["requirement_type"] == "responsibility"
+    assert docker["role_relevance"] < 0.8
+    assert docker["jd_evidence"]
+
+
 def test_analysis_with_no_extracted_requirements_reports_insufficient_data(sample_resume_text):
     results = SkillGapService().analyze(
         resume_text=sample_resume_text,

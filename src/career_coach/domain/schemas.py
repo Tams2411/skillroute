@@ -16,6 +16,16 @@ class EvidenceLevel(str, Enum):
     VERIFIED = "verified"
 
 
+class SkillRequirementType(str, Enum):
+    """Context where a job description mentions a skill."""
+    REQUIRED = "required"
+    PREFERRED = "preferred"
+    SKILLS = "skills"
+    RESPONSIBILITY = "responsibility"
+    EXPERIENCE = "experience"
+    EDUCATION = "education"
+
+
 class ApplicationStatus(str, Enum):
     """Application status values."""
     APPLIED = "applied"
@@ -57,6 +67,7 @@ class JobSkillRequirement(BaseModel):
     importance: float = Field(ge=0.0, le=1.0)
     evidence_phrase: str = Field(default="", max_length=500)
     extraction_confidence: float = Field(ge=0.0, le=1.0)
+    requirement_type: SkillRequirementType = SkillRequirementType.REQUIRED
 
 
 class SkillGap(BaseModel):
@@ -74,6 +85,7 @@ class SkillGap(BaseModel):
     resume_evidence: str = Field(default="", max_length=500)
     resume_evidence_source: str = Field(default="", max_length=40)
     resume_extraction_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    requirement_type: SkillRequirementType = SkillRequirementType.REQUIRED
 
 
 class LearningTask(BaseModel):

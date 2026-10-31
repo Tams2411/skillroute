@@ -7,6 +7,7 @@ from typing import Optional, TypedDict
 
 from career_coach.config import settings
 from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
+from career_coach.domain.schemas import SkillRequirementType
 
 
 class JDSectionType(str, Enum):
@@ -35,6 +36,7 @@ class ExtractedSkill(TypedDict):
     importance: float
     evidence_phrase: str
     extraction_confidence: float
+    requirement_type: str
 
 
 class JDParser:
@@ -64,7 +66,7 @@ class JDParser:
             r"(?:^|\n)\s*(?:experience|years\s+of\s+experience)(?:\s*:|\n|$)",
         ],
         JDSectionType.EDUCATION: [
-            r"(?:^|\n)\s*(?:education|qualifications|degree)(?:\s*:|\n|$)",
+            r"(?:^|\n)\s*(?:education|degree)(?:\s*:|\n|$)",
         ],
         JDSectionType.SKILLS: [
             r"(?:^|\n)\s*(?:skills|technical\s+skills|technologies)(?:\s*:|\n|$)",
@@ -118,22 +120,51 @@ class JDParser:
         # Detect sections
         sections = self._detect_sections(text)
 
-        # Extract skills from each section
+        # Extract skills with their section context intact.
         requirements_text = self._get_section_text(sections, JDSectionType.REQUIREMENTS)
         preferred_text = self._get_section_text(sections, JDSectionType.PREFERRED)
         skills_text = self._get_section_text(sections, JDSectionType.SKILLS)
         experience_text = self._get_section_text(sections, JDSectionType.EXPERIENCE)
+        responsibilities_text = self._get_section_text(sections, JDSectionType.RESPONSIBILITIES)
+        education_text = self._get_section_text(sections, JDSectionType.EDUCATION)
 
-        # Combine requirements + skills sections for required skills
-        required_text = "\n".join(filter(None, [requirements_text, skills_text]))
+        candidates = []
+        section_inputs = (
+            (requirements_text, SkillRequirementType.REQUIRED),
+            (skills_text, SkillRequirementType.SKILLS),
+            (preferred_text, SkillRequirementType.PREFERRED),
+            (responsibilities_text, SkillRequirementType.RESPONSIBILITY),
+            (experience_text, SkillRequirementType.EXPERIENCE),
+            (education_text, SkillRequirementType.EDUCATION),
+        )
+        for content, requirement_type in section_inputs:
+            candidates.extend(
+                self._extract_skills_with_context(content, requirement_type)
+            )
 
-        # Extract skills with context
-        required_skills = self._extract_skills_with_context(required_text, is_required=True)
-        preferred_skills = self._extract_skills_with_context(preferred_text, is_required=False)
-        required_names = {skill["canonical_skill"] for skill in required_skills}
+        best_by_skill: dict[str, ExtractedSkill] = {}
+        for candidate in candidates:
+            current = best_by_skill.get(candidate["canonical_skill"])
+            if current is None or candidate["importance"] > current["importance"]:
+                best_by_skill[candidate["canonical_skill"]] = candidate
+
+        selected = sorted(
+            best_by_skill.values(),
+            key=lambda skill: skill["importance"] * skill["extraction_confidence"],
+            reverse=True,
+        )
+        required_types = {SkillRequirementType.REQUIRED.value, SkillRequirementType.SKILLS.value}
+        required_skills = [
+            skill for skill in selected if skill["requirement_type"] in required_types
+        ]
         preferred_skills = [
-            skill for skill in preferred_skills
-            if skill["canonical_skill"] not in required_names
+            skill for skill in selected
+            if skill["requirement_type"] == SkillRequirementType.PREFERRED.value
+        ]
+        contextual_skills = [
+            skill for skill in selected
+            if skill["requirement_type"] not in required_types
+            and skill["requirement_type"] != SkillRequirementType.PREFERRED.value
         ]
 
         # Extract experience requirement
@@ -145,11 +176,15 @@ class JDParser:
             "sections": {s.section_type.value: s.content for s in sections},
             "required_skills": required_skills,
             "preferred_skills": preferred_skills,
+            "contextual_skills": contextual_skills,
             "target_experience_years": target_experience,
             "extraction_metadata": {
-                "required_section_chars": len(required_text),
+                "required_section_chars": len(requirements_text) + len(skills_text),
                 "preferred_section_chars": len(preferred_text),
-                "total_skills_found": len(required_skills) + len(preferred_skills),
+                "contextual_section_chars": (
+                    len(responsibilities_text) + len(experience_text) + len(education_text)
+                ),
+                "total_skills_found": len(selected),
             },
         }
 
@@ -204,13 +239,26 @@ class JDParser:
         contents = [s.content for s in sections if s.section_type == section_type]
         return "\n".join(contents) if contents else ""
 
-    def _extract_skills_with_context(self, text: str, is_required: bool) -> list[ExtractedSkill]:
+    def _extract_skills_with_context(
+        self,
+        text: str,
+        requirement_type: SkillRequirementType,
+    ) -> list[ExtractedSkill]:
         """Extract skills from text with evidence phrases and confidence."""
         if not text:
             return []
 
         results: list[ExtractedSkill] = []
         text_lower = text.lower()
+        importance_by_type = {
+            SkillRequirementType.REQUIRED: (0.8, 0.7),
+            SkillRequirementType.PREFERRED: (0.5, 0.4),
+            SkillRequirementType.SKILLS: (0.75, 0.65),
+            SkillRequirementType.RESPONSIBILITY: (0.65, 0.55),
+            SkillRequirementType.EXPERIENCE: (0.7, 0.6),
+            SkillRequirementType.EDUCATION: (0.6, 0.5),
+        }
+        canonical_importance, alias_importance = importance_by_type[requirement_type]
 
         # Get all canonical skills and aliases
         for canonical, entry in self.taxonomy.skills.items():
@@ -220,9 +268,10 @@ class JDParser:
                 confidence = self._calculate_confidence(canonical, text_lower, evidence)
                 results.append({
                     "canonical_skill": canonical,
-                    "importance": 0.8 if is_required else 0.5,
+                    "importance": canonical_importance,
                     "evidence_phrase": evidence,
                     "extraction_confidence": confidence,
+                    "requirement_type": requirement_type.value,
                 })
                 continue
 
@@ -233,9 +282,10 @@ class JDParser:
                     confidence = self._calculate_confidence(alias, text_lower, evidence)
                     results.append({
                         "canonical_skill": canonical,
-                        "importance": 0.7 if is_required else 0.4,
+                        "importance": alias_importance,
                         "evidence_phrase": evidence,
                         "extraction_confidence": confidence,
+                        "requirement_type": requirement_type.value,
                     })
                     break
 

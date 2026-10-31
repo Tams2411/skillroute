@@ -548,6 +548,11 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     if "evidence_strength" in skill:
         strength = round(float(skill["evidence_strength"]) * 100)
         metadata.append(f"Evidence strength: {strength}%")
+    requirement_type = skill.get("requirement_type")
+    if requirement_type:
+        metadata.append(
+            f"JD context: {_escape_html(str(requirement_type).replace('_', ' '))}"
+        )
 
     card_parts = [
         '<div class="skill-card animate-fade-in">',

@@ -1,7 +1,13 @@
 """Skill gap analysis service - combines parsing, extraction, and scoring."""
 
 from career_coach.config import settings
-from career_coach.domain.schemas import EvidenceLevel, JobSkillRequirement, SkillEvidence, SkillGap
+from career_coach.domain.schemas import (
+    EvidenceLevel,
+    JobSkillRequirement,
+    SkillEvidence,
+    SkillGap,
+    SkillRequirementType,
+)
 from career_coach.domain.scoring import (
     calculate_evidence_strength,
     calculate_readiness_score,
@@ -127,20 +133,19 @@ class SkillGapService:
 
         # 6. Build JD skill requirements
         jd_requirements = []
-        for rs in jd_result["required_skills"]:
-            jd_requirements.append(JobSkillRequirement(
-                canonical_skill=rs["canonical_skill"],
-                importance=rs["importance"],
-                evidence_phrase=rs["evidence_phrase"],
-                extraction_confidence=rs["extraction_confidence"],
-            ))
-        for rs in jd_result["preferred_skills"]:
-            jd_requirements.append(JobSkillRequirement(
-                canonical_skill=rs["canonical_skill"],
-                importance=rs["importance"],
-                evidence_phrase=rs["evidence_phrase"],
-                extraction_confidence=rs["extraction_confidence"],
-            ))
+        for skill_list in (
+            jd_result["required_skills"],
+            jd_result["preferred_skills"],
+            jd_result["contextual_skills"],
+        ):
+            for rs in skill_list:
+                jd_requirements.append(JobSkillRequirement(
+                    canonical_skill=rs["canonical_skill"],
+                    importance=rs["importance"],
+                    evidence_phrase=rs["evidence_phrase"],
+                    extraction_confidence=rs["extraction_confidence"],
+                    requirement_type=SkillRequirementType(rs["requirement_type"]),
+                ))
 
         # 7. Compute gaps
         gaps = []
@@ -173,6 +178,7 @@ class SkillGapService:
                     "extraction_confidence": (
                         resume_evidence_map[jd_req.canonical_skill].extraction_confidence
                     ),
+                    "requirement_type": jd_req.requirement_type.value,
                     "user_confirmed": resume_evidence_map[jd_req.canonical_skill].user_confirmed,
                 })
 

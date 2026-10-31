@@ -1,6 +1,12 @@
 """Scoring and priority calculation for skill gaps."""
 
-from career_coach.domain.schemas import SkillEvidence, JobSkillRequirement, SkillGap, EvidenceLevel
+from career_coach.domain.schemas import (
+    EvidenceLevel,
+    JobSkillRequirement,
+    SkillEvidence,
+    SkillGap,
+    SkillRequirementType,
+)
 from career_coach.config import settings
 
 
@@ -76,25 +82,44 @@ def compute_skill_gap(
     priority = calculate_priority(role_relevance, evidence_level, extraction_confidence)
 
     # Build rationale
+    context_label = {
+        SkillRequirementType.REQUIRED: "required skills",
+        SkillRequirementType.PREFERRED: "preferred skills",
+        SkillRequirementType.SKILLS: "skills",
+        SkillRequirementType.RESPONSIBILITY: "responsibilities",
+        SkillRequirementType.EXPERIENCE: "experience",
+        SkillRequirementType.EDUCATION: "education",
+    }[jd_skill.requirement_type]
     if evidence_level == EvidenceLevel.NONE:
-        reason = f"Skill required for role (importance: {role_relevance:.0%}) but not found in resume"
+        reason = (
+            f"Skill listed under {context_label} (importance: {role_relevance:.0%}) "
+            "but not found in resume"
+        )
     elif evidence_level == EvidenceLevel.MENTIONED:
-        reason = f"Skill mentioned in resume but not demonstrated; role requires it (importance: {role_relevance:.0%})"
+        reason = (
+            f"Skill mentioned in resume but not demonstrated; listed under {context_label} "
+            f"(importance: {role_relevance:.0%})"
+        )
     elif evidence_level == EvidenceLevel.SELF_REPORTED:
         reason = (
             f"Skill self-reported by user but not independently verified; "
-            f"role requires it (importance: {role_relevance:.0%})"
+            f"listed under {context_label} (importance: {role_relevance:.0%})"
         )
     elif evidence_level == EvidenceLevel.DEMONSTRATED:
-        reason = f"Skill demonstrated in resume; role requires it (importance: {role_relevance:.0%})"
+        reason = (
+            f"Skill demonstrated in resume; listed under {context_label} "
+            f"(importance: {role_relevance:.0%})"
+        )
     else:  # VERIFIED
-        reason = f"Skill verified in resume; role requires it (importance: {role_relevance:.0%})"
+        reason = (
+            f"Skill verified in resume; listed under {context_label} "
+            f"(importance: {role_relevance:.0%})"
+        )
 
     # Build uncertainty
     uncertainty_parts = []
     if extraction_confidence < 0.7:
         uncertainty_parts.append(f"JD extraction confidence low ({extraction_confidence:.0%})")
-    # Note: SkillEvidence doesn't have extraction_confidence field
     if evidence_level == EvidenceLevel.NONE:
         uncertainty_parts.append("Skill may exist but not captured in provided resume text")
 
@@ -112,6 +137,7 @@ def compute_skill_gap(
         resume_evidence=resume_evidence_str,
         resume_evidence_source=resume_evidence_source,
         resume_extraction_confidence=resume_extraction_confidence,
+        requirement_type=jd_skill.requirement_type,
     )
 
 
