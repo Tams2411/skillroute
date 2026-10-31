@@ -20,7 +20,9 @@ def test_analysis_generates_role_specific_plan_and_interview(sample_resume_text,
     }
 
     assert results["total_jd_skills"] > 0
+    assert results["readiness_state"] == "available"
     assert 0.0 <= results["readiness_score"] <= 1.0
+    assert 0 <= results["readiness_percentage"] <= 100
     assert results["gaps"]
     assert "kafka" in preferred_skills
     assert "kafka" not in required_skills
@@ -39,6 +41,18 @@ def test_analysis_generates_role_specific_plan_and_interview(sample_resume_text,
     assert all(task.week <= 4 for task in plan)
     assert sessions
     assert all(session.target_role == "Senior Data Engineer" for session in sessions)
+
+
+def test_analysis_with_no_extracted_requirements_reports_insufficient_data(sample_resume_text):
+    results = SkillGapService().analyze(
+        resume_text=sample_resume_text,
+        jd_text="A supportive team, flexible hours, and competitive benefits.",
+    )
+
+    assert results["total_jd_skills"] == 0
+    assert results["readiness_state"] == "insufficient_data"
+    assert results["readiness_score"] is None
+    assert results["readiness_percentage"] is None
 
 
 def test_confirmed_demonstrated_skill_is_verified_and_strength_is_numeric():

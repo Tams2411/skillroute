@@ -133,8 +133,9 @@ class SkillGapService:
         actionable_gaps = filter_actionable_gaps(ranked_gaps)
         top_gaps = get_top_gaps(ranked_gaps)
 
-        # 9. Calculate readiness
+        # 9. Calculate weighted evidence coverage when requirements are assessable.
         readiness = calculate_readiness_score(gaps)
+        readiness_state = "available" if readiness is not None else "insufficient_data"
 
         # 10. Prepare matched skills
         matched_skills = []
@@ -157,8 +158,9 @@ class SkillGapService:
         ]
 
         return {
+            "readiness_state": readiness_state,
             "readiness_score": readiness,
-            "readiness_percentage": round(readiness * 100),
+            "readiness_percentage": round(readiness * 100) if readiness is not None else None,
             "total_jd_skills": len(jd_requirements),
             "gaps": [g.model_dump() for g in ranked_gaps],
             "matched_skills": matched_skills,

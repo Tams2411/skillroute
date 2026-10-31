@@ -43,12 +43,13 @@ app.py (six sidebar-navigated pages)
 
 - `gaps`, `all_gaps`, `top_gaps`, and `actionable_gaps` as serialized skill-gap records
 - `matched_skills` and `missing_skills`
-- `readiness_score` (0–1) and `readiness_percentage`
+- `readiness_state` (`available` or `insufficient_data`)
+- `readiness_score` (0–1) and `readiness_percentage`, both `null` when state is `insufficient_data`
 - extraction counts and metadata
 
 The Plan and Interview pages validate serialized gap records back into `SkillGap` models before passing them to their services.
 
-### Priority and readiness
+### Priority and evidence coverage
 
 ```text
 priority = role_relevance × (1 − evidence_strength) × extraction_confidence
@@ -63,7 +64,7 @@ JD importance informs role relevance. Evidence weights are configured as:
 | DEMONSTRATED | 0.4 |
 | VERIFIED | 0.9 |
 
-Readiness is a weighted evidence-coverage heuristic. Neither score predicts hiring outcomes or establishes proficiency.
+Weighted evidence coverage is a heuristic summary of evidence against extracted requirements. If no requirements with positive total importance are extracted, the state is `insufficient_data` and no score or percentage is returned. The UI shows an explanatory message instead of presenting a perfect score or claiming the user is prepared. This metric does not predict hiring outcomes or establish proficiency.
 
 ## Persistence and Data Flow
 

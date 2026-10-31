@@ -209,8 +209,19 @@ class TestReadinessScore:
         score = calculate_readiness_score(gaps)
         assert score == pytest.approx(0.9, abs=0.01)
     
-    def test_no_skills_100_percent(self):
-        assert calculate_readiness_score([]) == 1.0
+    def test_no_skills_returns_insufficient_data(self):
+        assert calculate_readiness_score([]) is None
+
+    def test_zero_total_requirement_weight_returns_insufficient_data(self):
+        from career_coach.domain.schemas import SkillGap
+
+        gap = SkillGap(
+            canonical_skill="python", role_relevance=0.0, evidence_strength=0.9,
+            extraction_confidence=1.0, priority=0.0, reason="test",
+            uncertainty="", jd_evidence="", resume_evidence=""
+        )
+
+        assert calculate_readiness_score([gap]) is None
     
     def test_all_missing_zero_percent(self):
         from career_coach.domain.schemas import SkillGap

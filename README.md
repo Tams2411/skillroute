@@ -41,11 +41,12 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | **Plan** | Weekly learning tasks, curated resources, and project recommendations |
 | **Interview** | Rubric-based mock questions (technical + behavioral), self-evaluation scoring, and optional Gemini feedback |
 | **Tracker** | Application CRUD — company, role, URL, status, notes + response/interview/offer rates |
-| **Dashboard** | Readiness score, gap distribution, application stats, quick-action cards |
+| **Dashboard** | Weighted evidence coverage when requirements are available, application stats, quick-action cards |
 
 ### Core Design Principles
 
 - **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/DEMONSTRATED/VERIFIED), with a transparent priority score.
+- **Honest coverage reporting** — Weighted evidence coverage is shown only when recognizable job requirements are available; insufficient input is reported without a percentage.
 - **Deterministic by default** — Core resume/JD analysis and scoring run locally without an AI provider.
 - **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.
 - **Validated inputs** — Upload size/page limits and pasted-text limits are enforced.
@@ -111,11 +112,11 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 
 1. **Intake** → `ResumeParser` extracts text → `SkillExtractor` finds skills with evidence
 2. **JD Parse** → `JDParser` splits into sections → `SkillExtractor` maps to taxonomy
-3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps`, and a heuristic readiness score
+3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps`, and weighted evidence coverage when requirements are available
 4. **Plan** → `plan_generator` creates weekly tasks and project recommendations from prioritized gaps
 5. **Interview** → `InterviewService` creates questions + deterministic rubrics; an explicit, consented request can send the answer/question/role/skill to Gemini for advisory feedback
 6. **Tracker** → `ApplicationTracker` persists applications to `data/applications.json`
-7. **Dashboard** → Aggregates readiness, stats, recent activity
+7. **Dashboard** → Aggregates evidence coverage, stats, and recent activity
 
 ---
 

@@ -149,13 +149,26 @@ def render_intake_tab() -> dict | None:
 
 def render_results(results: dict) -> None:
     """Render the analysis results."""
-    
-    # Readiness Score
+
+    if results.get("readiness_state") == "insufficient_data":
+        st.markdown(render_section_header(
+            "Skill Gap Analysis",
+            "Insufficient data to calculate weighted evidence coverage.",
+            icon="target",
+        ), unsafe_allow_html=True)
+        st.warning(
+            "No recognizable skill requirements were found in this job description. "
+            "Review or add a job description with explicit role requirements, then analyze again."
+        )
+        return
+
+    # Weighted evidence coverage
     readiness_pct = results.get("readiness_percentage", 0)
     
     st.markdown(render_section_header(
         "Skill Gap Analysis",
-        f"Overall Readiness: {readiness_pct}% | {results.get('total_jd_skills', 0)} skills in JD",
+        f"Weighted evidence coverage: {readiness_pct}% | "
+        f"{results.get('total_jd_skills', 0)} skills in JD",
         icon="target"
     ), unsafe_allow_html=True)
     

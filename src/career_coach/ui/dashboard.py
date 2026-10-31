@@ -36,8 +36,16 @@ def render_dashboard_tab():
             unsafe_allow_html=True,
         )
     with col4:
-        readiness = results.get("readiness_percentage", 0) if results else 0
-        st.markdown(render_metric("Readiness", f"{readiness:.0f}%"), unsafe_allow_html=True)
+        if not results:
+            coverage = "Not analyzed"
+        elif results.get("readiness_state") == "insufficient_data":
+            coverage = "Insufficient data"
+        else:
+            coverage = f"{results.get('readiness_percentage', 0):.0f}%"
+        st.markdown(
+            render_metric("Weighted Evidence Coverage", coverage),
+            unsafe_allow_html=True,
+        )
     
     # Status chart
     if stats['by_status']:
@@ -46,11 +54,16 @@ def render_dashboard_tab():
         st.bar_chart(status_data, width="stretch")
     
     # Readiness breakdown
-    if results:
+    if results and results.get("readiness_state") == "insufficient_data":
+        st.warning(
+            "No recognizable job requirements were found, so skill coverage cannot be calculated. "
+            "Review the job description in Intake."
+        )
+    elif results:
         st.markdown("---")
         st.markdown(
             render_section_header(
-                "🎯 Skill Readiness",
+                "🎯 Weighted Evidence Coverage",
                 f"Based on {results.get('total_jd_skills', 0)} JD skills analyzed",
             ),
             unsafe_allow_html=True,

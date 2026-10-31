@@ -109,18 +109,18 @@ def rank_gaps(gaps: list[SkillGap]) -> list[SkillGap]:
     return sorted(gaps, key=lambda g: g.priority, reverse=True)
 
 
-def calculate_readiness_score(gaps: list[SkillGap]) -> float:
+def calculate_readiness_score(gaps: list[SkillGap]) -> float | None:
     """
-    Calculate overall readiness score (0-1).
+    Calculate weighted evidence coverage (0-1).
 
-    Based on weighted coverage of required skills.
+    Returns None when there are no assessable requirements.
     """
     if not gaps:
-        return 1.0
+        return None
 
     total_weight = sum(g.role_relevance for g in gaps)
     if total_weight == 0:
-        return 1.0
+        return None
 
     covered_weight = sum(
         g.role_relevance * g.evidence_strength

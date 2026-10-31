@@ -39,6 +39,19 @@ def render_interview_tab():
             args=("Intake",),
         )
         return
+
+    if results.get("readiness_state") == "insufficient_data":
+        st.warning(
+            "Insufficient data: there are not enough recognizable job requirements to generate "
+            "targeted interview questions. Review the job description in Intake."
+        )
+        st.button(
+            "Review Job Description",
+            key="goto_intake_interview_insufficient_data",
+            on_click=navigate_to,
+            args=("Intake",),
+        )
+        return
     
     gaps = [SkillGap.model_validate(gap) for gap in results.get("gaps", [])]
     
