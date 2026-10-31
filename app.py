@@ -7,6 +7,10 @@ import os
 from career_coach.config import settings
 from career_coach.services.skill_gap_service import SkillGapService
 from career_coach.ui.intake import render_intake_tab, render_results, SAMPLE_JD
+from career_coach.ui.plan import render_plan_tab
+from career_coach.ui.interview import render_interview_tab
+from career_coach.ui.tracker import render_tracker_tab
+from career_coach.ui.dashboard import render_dashboard_tab
 from career_coach.ui.theme import (
     render_section_header, render_alert, render_empty_state
 )
@@ -210,85 +214,21 @@ def main() -> None:
             </div>
             """, unsafe_allow_html=True)
     
-    # Tab 3: Plan (placeholder)
+    # Tab 3: Plan
     with tabs[2]:
-        st.markdown(render_section_header(
-            "Learning Plan",
-            "Weekly learning tasks generated from your top skill gaps",
-            icon="book-open"
-        ), unsafe_allow_html=True)
-        
-        if st.session_state.analysis_results:
-            st.markdown(render_alert(
-                "Learning plan generation coming in next phase. Top gaps will be converted to weekly tasks with deliverables and acceptance criteria.",
-                "info", "info"
-            ), unsafe_allow_html=True)
-        else:
-            st.markdown(render_empty_state(
-                "Complete Assessment First",
-                "Run the skill gap analysis to generate a personalized learning plan.",
-                "target"
-            ), unsafe_allow_html=True)
+        render_plan_tab()
     
-    # Tab 4: Interview (placeholder)
+    # Tab 4: Interview
     with tabs[3]:
-        st.markdown(render_section_header(
-            "Mock Interview",
-            "Practice behavioral and technical questions with rubric-based feedback",
-            icon="clipboard-list"
-        ), unsafe_allow_html=True)
-        
-        if st.session_state.analysis_results:
-            st.markdown(render_alert(
-                "Mock interview coming in next phase. Questions will target your top skill gaps with a visible 1-5 rubric.",
-                "info", "info"
-            ), unsafe_allow_html=True)
-        else:
-            st.markdown(render_empty_state(
-                "Complete Assessment First",
-                "Run the skill gap analysis to enable targeted interview practice.",
-                "target"
-            ), unsafe_allow_html=True)
+        render_interview_tab()
     
-    # Tab 5: Tracker (placeholder)
+    # Tab 5: Tracker
     with tabs[4]:
-        st.markdown(render_section_header(
-            "Application Tracker",
-            "Track applications, record status events, and capture feedback",
-            icon="folder-open"
-        ), unsafe_allow_html=True)
-        
-        if st.session_state.analysis_results:
-            st.markdown(render_alert(
-                "Application tracker coming in next phase. Append-only event log with guardrails against causal fallacy.",
-                "info", "info"
-            ), unsafe_allow_html=True)
-        else:
-            st.markdown(render_empty_state(
-                "Complete Assessment First",
-                "Run the skill gap analysis to start tracking applications for this role.",
-                "target"
-            ), unsafe_allow_html=True)
+        render_tracker_tab()
     
-    # Tab 6: Dashboard (placeholder)
+    # Tab 6: Dashboard
     with tabs[5]:
-        st.markdown(render_section_header(
-            "Progress Dashboard",
-            "Overview of your pivot journey: gaps, plan progress, interview history, application funnel",
-            icon="trending-up"
-        ), unsafe_allow_html=True)
-        
-        if st.session_state.analysis_results:
-            st.markdown(render_alert(
-                "Dashboard coming in next phase. Will show readiness trend, plan completion, interview scores, and application funnel.",
-                "info", "info"
-            ), unsafe_allow_html=True)
-        else:
-            st.markdown(render_empty_state(
-                "Complete Assessment First",
-                "Run the skill gap analysis to see your progress dashboard.",
-                "target"
-            ), unsafe_allow_html=True)
+        render_dashboard_tab()
 
 
 # Sample Resume for testing
