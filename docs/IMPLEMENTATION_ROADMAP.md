@@ -85,7 +85,7 @@ For every implementation PR:
 
 - [x] Establish baseline and verify the existing mainline PR.
 - [x] Audit the six Phase 0 correctness areas and record code/test evidence in `IMPLEMENTATION_AUDIT.md`.
-- [ ] Open the audit/roadmap PR.
+- [x] Open the audit/roadmap PR.
 - [ ] Start Phase 0.1 as the first correctness PR after the roadmap is reviewable.
 - [ ] Continue one scoped PR per Phase 0 invariant, then proceed through later phases only after each exit gate passes.
 
