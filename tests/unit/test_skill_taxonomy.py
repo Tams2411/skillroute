@@ -34,6 +34,28 @@ class TestSkillTaxonomy:
         canonical = taxonomy.get_canonical("k8s")
         assert canonical == "kubernetes"
 
+    def test_related_tools_and_concepts_have_distinct_canonical_skills(self):
+        taxonomy = load_taxonomy()
+        distinct_terms = [
+            ("tensorflow", "keras"),
+            ("spark", "pyspark"),
+            ("git", "github"),
+            ("git", "gitlab"),
+            ("ci/cd", "github actions"),
+            ("ci/cd", "gitlab ci"),
+            ("mongodb", "nosql"),
+            ("data visualization", "matplotlib"),
+            ("system design", "distributed systems"),
+            ("testing", "pytest"),
+            ("testing", "jest"),
+            ("agile", "scrum"),
+            ("agile", "kanban"),
+        ]
+
+        for first, second in distinct_terms:
+            assert taxonomy.get_canonical(first) == first
+            assert taxonomy.get_canonical(second) == second
+
     def test_case_insensitive_lookup(self):
         taxonomy = load_taxonomy()
 

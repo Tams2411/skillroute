@@ -74,6 +74,8 @@ Resume evidence records preserve their source and extraction confidence separate
 
 JD skill requirements retain their originating context (`required`, `preferred`, `skills`, `responsibility`, `experience`, or `education`). Context-specific importance weights affect ranking; benefits remain excluded, and duplicate mentions retain the strongest applicable requirement context.
 
+The taxonomy maps only true synonyms to one canonical skill. Related tools and broader concepts, including TensorFlow/Keras, Spark/PySpark, Git/GitHub, MongoDB/NoSQL, and testing/Pytest, remain separate entries so a match for one is not presented as evidence for another.
+
 ## Persistence and Data Flow
 
 | Data | Storage |

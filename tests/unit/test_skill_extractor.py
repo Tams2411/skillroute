@@ -23,6 +23,25 @@ def test_short_ambiguous_aliases_are_not_used_for_matching():
     assert short_aliases.isdisjoint(aliases)
 
 
+def test_related_tools_are_extracted_as_distinct_skills():
+    matches = SkillExtractor().extract_from_resume(
+        "Used TensorFlow and Keras, Spark and PySpark, Git and GitHub, "
+        "CI/CD with GitHub Actions, MongoDB and NoSQL, Tableau and Matplotlib, "
+        "system design and distributed systems, testing with pytest and Jest, "
+        "and Agile with Scrum and Kanban."
+    )
+
+    skills = {match.canonical_skill for match in matches}
+    expected = {
+        "tensorflow", "keras", "spark", "pyspark", "git", "github",
+        "ci/cd", "github actions", "mongodb", "nosql", "tableau", "matplotlib",
+        "system design", "distributed systems", "testing", "pytest", "jest",
+        "agile", "scrum", "kanban",
+    }
+
+    assert expected <= skills
+
+
 def test_unrelated_demonstration_language_does_not_inflate_evidence():
     resume = "Built a garden project.\n" + (" " * 200) + "Python"
 

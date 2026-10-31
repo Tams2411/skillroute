@@ -49,6 +49,7 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 - **Honest manual skill claims** — Recognized aliases are normalized, user-reported skills are scored below demonstrated evidence, and unknown entries are reported rather than counted.
 - **Explainable evidence** — Assessment records retain evidence source and extraction confidence separately from evidence strength; confidence is not treated as proof of proficiency.
 - **Context-aware JD analysis** — Skills retain required, preferred, responsibility, experience, or education context; benefits are excluded and duplicate mentions are counted once at their strongest context.
+- **Distinct skill taxonomy** — Related products and concepts (for example, TensorFlow/Keras, Spark/PySpark, Git/GitHub, and testing/Pytest) are tracked separately instead of being treated as synonyms.
 - **Honest coverage reporting** — Weighted evidence coverage is shown only when recognizable job requirements are available; insufficient input is reported without a percentage.
 - **Deterministic by default** — Core resume/JD analysis and scoring run locally without an AI provider.
 - **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.

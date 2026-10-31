@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTML escaping for dynamic text rendered in custom UI components
 
 ### Changed
+- Keep related technologies and concepts as separate taxonomy entries rather than treating them as aliases
 - Preserve JD section context for skill requirements and include skills mentioned in responsibilities, experience, and education without counting benefits
 - Preserve resume evidence source and extraction confidence in assessment results and display them separately from evidence strength
 - Raised the supported Streamlit minimum to 1.49 for the current widget width API
