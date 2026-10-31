@@ -3,10 +3,10 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, TypedDict
 
-from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
 from career_coach.config import settings
+from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
 
 
 class JDSectionType(str, Enum):
@@ -28,6 +28,13 @@ class JDSection:
     content: str
     start_pos: int
     end_pos: int
+
+
+class ExtractedSkill(TypedDict):
+    canonical_skill: str
+    importance: float
+    evidence_phrase: str
+    extraction_confidence: float
 
 
 class JDParser:
@@ -123,6 +130,11 @@ class JDParser:
         # Extract skills with context
         required_skills = self._extract_skills_with_context(required_text, is_required=True)
         preferred_skills = self._extract_skills_with_context(preferred_text, is_required=False)
+        required_names = {skill["canonical_skill"] for skill in required_skills}
+        preferred_skills = [
+            skill for skill in preferred_skills
+            if skill["canonical_skill"] not in required_names
+        ]
 
         # Extract experience requirement
         target_experience = self._extract_experience(experience_text or text)
@@ -143,16 +155,14 @@ class JDParser:
 
     def _normalize_text(self, text: str) -> str:
         """Normalize whitespace and encoding."""
-        # Replace various whitespace with single space
-        text = re.sub(r"\s+", " ", text)
-        # Normalize line endings
         text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = re.sub(r"[^\S\n]+", " ", text)
+        text = re.sub(r"\n{2,}", "\n", text)
         return text.strip()
 
     def _detect_sections(self, text: str) -> list[JDSection]:
         """Detect and extract sections from JD text."""
         sections = []
-        text_lower = text.lower()
 
         # Find all section headers
         header_matches = []
@@ -194,12 +204,12 @@ class JDParser:
         contents = [s.content for s in sections if s.section_type == section_type]
         return "\n".join(contents) if contents else ""
 
-    def _extract_skills_with_context(self, text: str, is_required: bool) -> list[dict]:
+    def _extract_skills_with_context(self, text: str, is_required: bool) -> list[ExtractedSkill]:
         """Extract skills from text with evidence phrases and confidence."""
         if not text:
             return []
 
-        results = []
+        results: list[ExtractedSkill] = []
         text_lower = text.lower()
 
         # Get all canonical skills and aliases

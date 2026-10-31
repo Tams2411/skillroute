@@ -1,20 +1,24 @@
 """SkillRoute - Career Pivot Coach Main Application."""
 
-import streamlit as st
-import tempfile
+import logging
 import os
+import tempfile
+from pathlib import Path
+
+import streamlit as st
 
 from career_coach.config import settings
 from career_coach.services.skill_gap_service import SkillGapService
-from career_coach.ui.intake import render_intake_tab, render_results, SAMPLE_JD
-from career_coach.ui.plan import render_plan_tab
-from career_coach.ui.interview import render_interview_tab
-from career_coach.ui.tracker import render_tracker_tab
 from career_coach.ui.dashboard import render_dashboard_tab
-from career_coach.ui.theme import (
-    render_section_header, render_alert, render_empty_state
-)
+from career_coach.ui.intake import SAMPLE_JD, render_intake_tab, render_results
+from career_coach.ui.interview import render_interview_tab
+from career_coach.ui.navigation import NAVIGATION_ITEMS
+from career_coach.ui.plan import render_plan_tab
+from career_coach.ui.session_state import clear_analysis_state, reset_workspace
+from career_coach.ui.tracker import render_tracker_tab
+from career_coach.ui.theme import apply_theme
 
+logger = logging.getLogger(__name__)
 
 # Page config
 st.set_page_config(
@@ -31,23 +35,39 @@ def init_session_state() -> None:
         "analysis_results": None,
         "resume_text": "",
         "jd_text": "",
-        "user_skills": [],
+        "user_skills": "",
+        "active_tab": "Intake",
         "current_step": "intake",
+        "input_generation": 0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+    if "pending_tab" in st.session_state:
+        st.session_state["active_tab"] = st.session_state.pop("pending_tab")
 
 
 def process_resume_file(uploaded_file) -> str:
     """Save uploaded file to temp and extract text."""
     from career_coach.services.resume_parser import ResumeParser
-    
+
+    max_size_bytes = settings.max_pdf_size_mb * 1024 * 1024
+    if uploaded_file.size > max_size_bytes:
+        raise ValueError(f"Resume file exceeds the {settings.max_pdf_size_mb}MB size limit.")
+
+    suffix = Path(uploaded_file.name).suffix.lower()
+    if suffix not in ResumeParser.SUPPORTED_FORMATS:
+        raise ValueError("Unsupported resume format. Upload a PDF, DOCX, or TXT file.")
+
+    file_bytes = uploaded_file.getvalue()
+    if len(file_bytes) > max_size_bytes:
+        raise ValueError(f"Resume file exceeds the {settings.max_pdf_size_mb}MB size limit.")
+
     with tempfile.NamedTemporaryFile(
         delete=False,
-        suffix=f".{uploaded_file.name.split('.')[-1]}"
+        suffix=suffix,
     ) as tmp:
-        tmp.write(uploaded_file.getvalue())
+        tmp.write(file_bytes)
         tmp_path = tmp.name
     
     try:
@@ -83,7 +103,7 @@ def run_analysis(input_data: dict) -> dict:
         return results
 
 
-def render_sidebar() -> None:
+def render_sidebar() -> str:
     """Render sidebar with app info and settings."""
     with st.sidebar:
         st.markdown("""
@@ -94,46 +114,60 @@ def render_sidebar() -> None:
         """, unsafe_allow_html=True)
         
         st.divider()
-        
+
+        st.markdown("### Navigate")
+        st.radio(
+            "Navigate",
+            NAVIGATION_ITEMS,
+            key="active_tab",
+            label_visibility="collapsed",
+        )
+
+        st.divider()
+
         # Status indicators
         st.markdown("### Status")
         
-        # AI Provider status
-        if settings.has_ai_provider:
-            provider, _ = settings.get_primary_provider()
-            st.markdown(f"""
-            <div class="status-indicator status-success">
-                {provider.title()} configured
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="status-indicator status-warning">
-                No AI provider (deterministic mode)
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Database status
         st.markdown("""
         <div class="status-indicator status-info">
-            SQLite (local)
+            Deterministic analysis — no AI requests
         </div>
         """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="status-indicator status-info">
+            Tracker records are plaintext JSON
+        </div>
+        """, unsafe_allow_html=True)
+        st.caption(
+            "Single-user demo. Tracker records are plain text and shared by this app instance."
+        )
         
         st.divider()
         
         # Quick actions
         st.markdown("### Quick Actions")
         
-        if st.button("Load Sample Data", use_container_width=True):
-            st.session_state.resume_text = SAMPLE_RESUME
-            st.session_state.jd_text = SAMPLE_JD
-            st.rerun()
-        
-        if st.button("Clear All", use_container_width=True):
-            for key in ["analysis_results", "resume_text", "jd_text", "user_skills"]:
-                st.session_state[key] = "" if key != "analysis_results" else None
-            st.rerun()
+        def load_sample_data() -> None:
+            reset_workspace()
+            st.session_state["resume_text"] = SAMPLE_RESUME
+            st.session_state["jd_text"] = SAMPLE_JD
+            st.session_state["_resume_text"] = SAMPLE_RESUME
+            st.session_state["_jd_text"] = SAMPLE_JD
+
+        st.button(
+            "Load sample data",
+            key="load_sample_data_btn",
+            width="stretch",
+            on_click=load_sample_data,
+        )
+        st.button(
+            "Reset inputs & results",
+            key="reset_workspace_btn",
+            width="stretch",
+            help="Clears intake text and generated results. Saved tracker applications are kept.",
+            on_click=reset_workspace,
+        )
         
         st.divider()
         
@@ -143,7 +177,6 @@ def render_sidebar() -> None:
             st.code(f"""
 Environment: {settings.app_env}
 Debug: {settings.debug}
-DB: {settings.database_url}
 Max PDF: {settings.max_pdf_size_mb}MB
 Max Pages: {settings.max_pdf_pages}
             """)
@@ -158,11 +191,14 @@ Max Pages: {settings.max_pdf_pages}
         </div>
         """, unsafe_allow_html=True)
 
+    return st.session_state["active_tab"]
+
 
 def main() -> None:
     """Main application entry point."""
+    apply_theme()
     init_session_state()
-    render_sidebar()
+    active_tab = render_sidebar()
     
     # Header
     st.markdown("""
@@ -172,18 +208,7 @@ def main() -> None:
     </div>
     """, unsafe_allow_html=True)
     
-    # Navigation tabs
-    tabs = st.tabs([
-        "📥 Intake",
-        "📊 Assessment",
-        "📅 Plan",
-        "🎤 Interview",
-        "📋 Tracker",
-        "📈 Dashboard",
-    ])
-    
-    # Tab 1: Intake
-    with tabs[0]:
+    if active_tab == "Intake":
         input_data = render_intake_tab()
         
         if input_data:
@@ -191,13 +216,15 @@ def main() -> None:
                 results = run_analysis(input_data)
                 st.session_state.analysis_results = results
                 st.session_state.current_step = "assessment"
+                st.session_state.pending_tab = "Assessment"
                 st.rerun()
-            except Exception as e:
-                st.error(f"Analysis failed: {str(e)}")
-                st.exception(e)
+            except ValueError as exc:
+                st.error(f"Unable to analyze these inputs: {exc}")
+            except Exception as exc:
+                logger.error("Analysis failed (%s)", type(exc).__name__)
+                st.error("Analysis failed unexpectedly. Please check your inputs and try again.")
     
-    # Tab 2: Assessment
-    with tabs[1]:
+    elif active_tab == "Assessment":
         if st.session_state.analysis_results:
             render_results(st.session_state.analysis_results)
         else:
@@ -214,20 +241,16 @@ def main() -> None:
             </div>
             """, unsafe_allow_html=True)
     
-    # Tab 3: Plan
-    with tabs[2]:
+    elif active_tab == "Plan":
         render_plan_tab()
     
-    # Tab 4: Interview
-    with tabs[3]:
+    elif active_tab == "Interview":
         render_interview_tab()
     
-    # Tab 5: Tracker
-    with tabs[4]:
+    elif active_tab == "Tracker":
         render_tracker_tab()
     
-    # Tab 6: Dashboard
-    with tabs[5]:
+    elif active_tab == "Dashboard":
         render_dashboard_tab()
 
 

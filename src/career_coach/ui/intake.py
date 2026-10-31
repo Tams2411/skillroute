@@ -1,11 +1,24 @@
 """Streamlit UI - Intake tab for resume and JD input."""
 
 import streamlit as st
+
+from career_coach.config import settings
+from career_coach.ui.session_state import clear_analysis_state
 from career_coach.ui.theme import (
-    render_svg, render_chip, render_status, render_alert,
-    render_empty_state, render_section_header, render_skill_card,
-    render_metric
+    render_alert,
+    render_empty_state,
+    render_metric,
+    render_section_header,
+    render_skill_card,
+    render_status,
 )
+
+
+def load_sample_jd() -> None:
+    """Load sample text before the JD widget is created on the next rerun."""
+    clear_analysis_state()
+    st.session_state["jd_text"] = SAMPLE_JD
+    st.session_state["_jd_text"] = SAMPLE_JD
 
 
 def render_intake_tab() -> dict | None:
@@ -15,6 +28,14 @@ def render_intake_tab() -> dict | None:
     Returns:
         Dict with analysis results or None if not ready
     """
+    for widget_key, state_key in (
+        ("_resume_text", "resume_text"),
+        ("_jd_text", "jd_text"),
+        ("_user_skills", "user_skills"),
+    ):
+        if widget_key not in st.session_state:
+            st.session_state[widget_key] = st.session_state[state_key]
+
     st.markdown(render_section_header(
         "Input Your Profile",
         "Upload your resume and paste a job description to get started",
@@ -26,24 +47,27 @@ def render_intake_tab() -> dict | None:
     # Resume Input
     with col1:
         st.markdown("### Resume")
-        
-        upload_col, text_col = st.columns([1, 1])
-        
-        with upload_col:
-            resume_file = st.file_uploader(
-                "Upload Resume",
-                type=["pdf", "docx", "txt"],
-                help="PDF, DOCX, or TXT (max 5MB, 10 pages)",
-                key="resume_uploader"
-            )
-        
-        with text_col:
-            resume_text = st.text_area(
-                "Or Paste Resume Text",
-                height=200,
-                placeholder="Paste your resume text here...",
-                key="resume_text"
-            )
+
+        resume_file = st.file_uploader(
+            "Upload Resume",
+            type=["pdf", "docx", "txt"],
+            help=(
+                f"PDF, DOCX, or TXT (max {settings.max_pdf_size_mb}MB; "
+                f"PDFs up to {settings.max_pdf_pages} pages)"
+            ),
+            key=f"resume_uploader_{st.session_state.get('input_generation', 0)}",
+            on_change=clear_analysis_state,
+        )
+
+        resume_text = st.text_area(
+            "Or Paste Resume Text",
+            height=200,
+            max_chars=settings.max_resume_length,
+            placeholder="Paste your resume text here...",
+            key="_resume_text",
+            on_change=clear_analysis_state,
+        )
+        st.session_state["resume_text"] = resume_text
         
         # Show extracted text preview if file uploaded
         if resume_file:
@@ -62,17 +86,23 @@ def render_intake_tab() -> dict | None:
         jd_text = st.text_area(
             "Paste Job Description",
             height=320,
+            max_chars=settings.max_jd_length,
             placeholder="Paste the full job description here...",
-            key="jd_text"
+            key="_jd_text",
+            on_change=clear_analysis_state,
         )
+        st.session_state["jd_text"] = jd_text
         
         if jd_text:
             st.caption(f"{len(jd_text)} characters")
         
         # Sample JD button
-        if st.button("Load Sample JD", key="sample_jd", use_container_width=True):
-            st.session_state.jd_text = SAMPLE_JD
-            st.rerun()
+        st.button(
+            "Load Sample JD",
+            key="sample_jd",
+            width="stretch",
+            on_click=load_sample_jd,
+        )
     
     # User confirmed skills
     st.markdown(render_section_header(
@@ -84,8 +114,10 @@ def render_intake_tab() -> dict | None:
     user_skills = st.text_input(
         "Comma-separated skills",
         placeholder="python, sql, docker, kubernetes",
-        key="user_skills"
+        key="_user_skills",
+        on_change=clear_analysis_state,
     )
+    st.session_state["user_skills"] = user_skills
     
     # Analyze button
     st.markdown("<br>", unsafe_allow_html=True)
@@ -96,7 +128,7 @@ def render_intake_tab() -> dict | None:
         "Analyze Skill Gaps",
         type="primary",
         disabled=not can_analyze,
-        use_container_width=True,
+        width="stretch",
         key="analyze_btn"
     ):
         return {
@@ -119,7 +151,6 @@ def render_results(results: dict) -> None:
     """Render the analysis results."""
     
     # Readiness Score
-    readiness = results.get("readiness_score", 0)
     readiness_pct = results.get("readiness_percentage", 0)
     
     st.markdown(render_section_header(

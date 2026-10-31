@@ -1,10 +1,11 @@
 """Application tracker service."""
 
-from career_coach.domain.schemas import Application, ApplicationStatus
-from datetime import datetime
-from uuid import uuid4
-from typing import Optional
 import json
+from datetime import datetime
+from typing import Optional
+from uuid import UUID, uuid4
+
+from career_coach.domain.schemas import Application, ApplicationStatus
 
 
 class ApplicationTracker:
@@ -34,17 +35,18 @@ class ApplicationTracker:
     
     def create(self, **kwargs) -> Application:
         """Create a new application."""
+        now = datetime.utcnow()
+        kwargs.setdefault("applied_at", now)
+        kwargs.setdefault("updated_at", now)
         app = Application(
             id=uuid4(),
-            applied_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
             **kwargs
         )
         self._applications.append(app)
         self._save()
         return app
     
-    def get(self, app_id: uuid4) -> Optional[Application]:
+    def get(self, app_id: UUID) -> Optional[Application]:
         """Get application by ID."""
         for app in self._applications:
             if app.id == app_id:
@@ -59,7 +61,7 @@ class ApplicationTracker:
         """List applications by status."""
         return [a for a in self._applications if a.status == status]
     
-    def update_status(self, app_id: uuid4, status: ApplicationStatus) -> Optional[Application]:
+    def update_status(self, app_id: UUID, status: ApplicationStatus) -> Optional[Application]:
         """Update application status."""
         app = self.get(app_id)
         if app:
@@ -69,7 +71,7 @@ class ApplicationTracker:
             return app
         return None
     
-    def update(self, app_id: uuid4, **kwargs) -> Optional[Application]:
+    def update(self, app_id: UUID, **kwargs) -> Optional[Application]:
         """Update application fields."""
         app = self.get(app_id)
         if app:
@@ -81,7 +83,7 @@ class ApplicationTracker:
             return app
         return None
     
-    def delete(self, app_id: uuid4) -> bool:
+    def delete(self, app_id: UUID) -> bool:
         """Delete an application."""
         app = self.get(app_id)
         if app:
@@ -108,8 +110,16 @@ class ApplicationTracker:
             if count > 0:
                 by_status[status.value] = count
         
-        responded = total - by_status.get("no_response", 0)
-        interviews = by_status.get("interview_scheduled", 0) + by_status.get("interview_completed", 0)
+        responded = (
+            total
+            - by_status.get(ApplicationStatus.APPLIED.value, 0)
+            - by_status.get(ApplicationStatus.NO_RESPONSE.value, 0)
+        )
+        interviews = (
+            by_status.get(ApplicationStatus.INTERVIEW_SCHEDULED.value, 0)
+            + by_status.get(ApplicationStatus.INTERVIEW_COMPLETED.value, 0)
+            + by_status.get(ApplicationStatus.OFFER.value, 0)
+        )
         offers = by_status.get("offer", 0)
         
         return {

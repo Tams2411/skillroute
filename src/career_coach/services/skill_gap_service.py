@@ -1,18 +1,19 @@
 """Skill gap analysis service - combines parsing, extraction, and scoring."""
 
-from career_coach.services.resume_parser import ResumeParser
-from career_coach.services.jd_parser import JDParser
-from career_coach.services.skill_extractor import SkillExtractor
-from career_coach.domain.scoring import (
-    compute_skill_gap,
-    rank_gaps,
-    calculate_readiness_score,
-    get_top_gaps,
-    filter_actionable_gaps,
-)
-from career_coach.domain.schemas import SkillEvidence, JobSkillRequirement, SkillGap, EvidenceLevel
-from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
 from career_coach.config import settings
+from career_coach.domain.schemas import EvidenceLevel, JobSkillRequirement, SkillEvidence, SkillGap
+from career_coach.domain.scoring import (
+    calculate_evidence_strength,
+    calculate_readiness_score,
+    compute_skill_gap,
+    filter_actionable_gaps,
+    get_top_gaps,
+    rank_gaps,
+)
+from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
+from career_coach.services.jd_parser import JDParser
+from career_coach.services.resume_parser import ResumeParser
+from career_coach.services.skill_extractor import SkillExtractor, SkillMatch
 
 
 class SkillGapService:
@@ -50,6 +51,15 @@ class SkillGapService:
         if not resume_text and not resume_file:
             raise ValueError("Either resume_text or resume_file must be provided")
 
+        if not resume_text or not resume_text.strip():
+            raise ValueError("Resume text is empty; provide text or upload a readable resume.")
+
+        if len(resume_text) > settings.max_resume_length:
+            raise ValueError(
+                f"Resume text too long: {len(resume_text)} > "
+                f"{settings.max_resume_length} characters"
+            )
+
         if not jd_text or not jd_text.strip():
             raise ValueError("Job description text is required")
 
@@ -67,26 +77,26 @@ class SkillGapService:
                 for rs in resume_skills:
                     if rs.canonical_skill == skill:
                         rs.user_confirmed = True
-                        if rs.evidence_level == EvidenceLevel.MENTIONED:
-                            rs.evidence_level = EvidenceLevel.VERIFIED
+                        rs.evidence_level = EvidenceLevel.VERIFIED.value
                         found = True
                         break
 
                 # If not found, add as verified
                 if not found:
-                    resume_skills.append(SkillEvidence(
+                    resume_skills.append(SkillMatch(
                         canonical_skill=skill,
-                        evidence_level=EvidenceLevel.VERIFIED,
+                        evidence_level=EvidenceLevel.VERIFIED.value,
                         source="manual",
                         supporting_evidence="User confirmed",
                         user_confirmed=True,
+                        extraction_confidence=1.0,
                     ))
 
         # 5. Build resume evidence map
         resume_evidence_map = {
             rs.canonical_skill: SkillEvidence(
                 canonical_skill=rs.canonical_skill,
-                evidence_level=rs.evidence_level,
+                evidence_level=EvidenceLevel(rs.evidence_level),
                 source=rs.source,
                 supporting_evidence=rs.supporting_evidence,
                 user_confirmed=rs.user_confirmed,
@@ -134,7 +144,9 @@ class SkillGapService:
                     "canonical_skill": jd_req.canonical_skill,
                     "role_relevance": jd_req.importance,
                     "evidence_level": resume_evidence_map[jd_req.canonical_skill].evidence_level.value,
-                    "evidence_strength": resume_evidence_map[jd_req.canonical_skill].evidence_level,
+                    "evidence_strength": calculate_evidence_strength(
+                        resume_evidence_map[jd_req.canonical_skill].evidence_level
+                    ),
                     "user_confirmed": resume_evidence_map[jd_req.canonical_skill].user_confirmed,
                 })
 
@@ -148,6 +160,7 @@ class SkillGapService:
             "readiness_score": readiness,
             "readiness_percentage": round(readiness * 100),
             "total_jd_skills": len(jd_requirements),
+            "gaps": [g.model_dump() for g in ranked_gaps],
             "matched_skills": matched_skills,
             "missing_skills": [g.model_dump() for g in missing_skills],
             "all_gaps": [g.model_dump() for g in ranked_gaps],

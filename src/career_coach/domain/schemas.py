@@ -2,7 +2,7 @@
 
 from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Literal
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -121,6 +121,7 @@ class InterviewSession(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     target_role: str = Field(min_length=1, max_length=100)
     category: str = Field(min_length=1, max_length=50)
+    question_type: Literal["technical", "behavioral"] = "technical"
     question: str = Field(min_length=1, max_length=2000)
     answer: str = Field(default="", max_length=5000)
     scores: list[InterviewRubricScore] = Field(default_factory=list)
@@ -137,7 +138,7 @@ class Application(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     company: str = Field(min_length=1, max_length=120)
     role: str = Field(min_length=1, max_length=100)
-    jd_text: str = Field(default="", max_length=5000)
+    jd_text: str = Field(default="", max_length=10000)
     status: ApplicationStatus = ApplicationStatus.APPLIED
     applied_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

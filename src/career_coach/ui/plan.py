@@ -1,11 +1,19 @@
 """Plan tab UI - Learning plan and project recommendations."""
 
 import streamlit as st
-from career_coach.services.plan_generator import generate_learning_plan, generate_project_recommendations
-from career_coach.ui.theme import (
-    render_section_header, render_chip, render_empty_state,
-    render_alert, render_skill_card
+
+from career_coach.domain.schemas import LearningTask, ProjectRecommendation, SkillGap
+from career_coach.services.plan_generator import (
+    generate_learning_plan,
+    generate_project_recommendations,
 )
+from career_coach.ui.theme import (
+    render_alert,
+    render_chip,
+    render_empty_state,
+    render_section_header,
+)
+from career_coach.ui.navigation import navigate_to
 
 
 def render_plan_tab():
@@ -18,19 +26,34 @@ def render_plan_tab():
             description="Complete the Intake tab first to generate your personalized learning plan.",
             icon="file-text",
         ), unsafe_allow_html=True)
-        if st.button("Go to Intake", key="goto_intake_plan_btn"):
-            st.session_state.active_tab = 0
-            st.rerun()
+        st.button(
+            "Go to Intake",
+            key="goto_intake_plan_btn",
+            on_click=navigate_to,
+            args=("Intake",),
+        )
         return
     
-    gaps = results.get("gaps", [])
+    gaps = [SkillGap.model_validate(gap) for gap in results.get("gaps", [])]
     
     if not gaps:
-        render_alert("🎉 No significant skill gaps found! You're well-prepared for this role.", "success")
+        st.markdown(
+            render_alert("🎉 No significant skill gaps found! You're well-prepared for this role.", "success"),
+            unsafe_allow_html=True,
+        )
         return
+
+    plan: list[LearningTask] | None = None
+    projects: list[ProjectRecommendation] | None = None
     
     # Plan configuration
-    render_section_header("📅 Learning Plan Configuration", "Configure your study plan parameters")
+    st.markdown(
+        render_section_header(
+            "📅 Learning Plan Configuration",
+            "Configure your study plan parameters",
+        ),
+        unsafe_allow_html=True,
+    )
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -40,7 +63,12 @@ def render_plan_tab():
     with col3:
         max_projects = st.slider("Portfolio Projects", 1, 5, 3, key="plan_projects")
     
-    if st.button("Generate Plan", type="primary", key="generate_plan_btn", use_container_width=True):
+    if st.button(
+        "Generate Plan",
+        type="primary",
+        key="generate_plan_btn",
+        width="stretch",
+    ):
         with st.spinner("Generating your personalized learning plan..."):
             plan = generate_learning_plan(gaps, weeks=weeks, hours_per_week=hours_per_week)
             projects = generate_project_recommendations(gaps, max_projects=max_projects)
@@ -53,7 +81,13 @@ def render_plan_tab():
     plan = st.session_state.get("learning_plan")
     if plan:
         st.markdown("---")
-        render_section_header("📚 Weekly Learning Plan", f"{len(plan)} weeks · {sum(t.estimated_hours for t in plan):.0f} total hours")
+        st.markdown(
+            render_section_header(
+                "📚 Weekly Learning Plan",
+                f"{len(plan)} weeks · {sum(t.estimated_hours for t in plan):.0f} total hours",
+            ),
+            unsafe_allow_html=True,
+        )
         
         # Group by week
         for task in plan:
@@ -77,7 +111,13 @@ def render_plan_tab():
     projects = st.session_state.get("project_recommendations")
     if projects:
         st.markdown("---")
-        render_section_header("🚀 Portfolio Project Recommendations", f"{len(projects)} projects to showcase your skills")
+        st.markdown(
+            render_section_header(
+                "🚀 Portfolio Project Recommendations",
+                f"{len(projects)} projects to showcase your skills",
+            ),
+            unsafe_allow_html=True,
+        )
         
         for i, proj in enumerate(projects):
             with st.expander(f"📦 {proj.title}", expanded=(i == 0)):
@@ -98,7 +138,10 @@ def render_plan_tab():
                         for g in proj.stretch_goals:
                             st.markdown(f"  ★ {g}")
                 with col2:
-                    render_chip(proj.difficulty.title(), "purple")
+                    st.markdown(
+                        render_chip(proj.difficulty.title(), "purple"),
+                        unsafe_allow_html=True,
+                    )
                     st.metric("Est. Hours", f"{proj.estimated_hours:.0f}h")
                     for skill in proj.targeted_skills:
-                        render_chip(skill, "teal")
+                        st.markdown(render_chip(skill, "teal"), unsafe_allow_html=True)

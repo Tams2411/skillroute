@@ -9,20 +9,17 @@ Thank you for your interest in contributing! This guide covers the development w
 git clone https://github.com/YOUR_USERNAME/skillroute.git
 cd skillroute
 
-# 2. Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+# 2. Install the locked runtime and development dependencies
+uv sync --extra dev --locked
 
-# 3. Install with dev dependencies
-pip install -e ".[dev]"
+# 3. Install pre-commit hooks
+uv run pre-commit install
 
-# 4. Install pre-commit hooks
-pre-commit install
-
-# 5. Verify setup
-pytest tests/unit/ -v
-ruff check .
-mypy src/
+# 4. Verify setup with the CI checks
+uv run pytest -q
+uv run ruff check --select E4,E7,E9,F src/ tests/
+uv run mypy src/
+uv run pip-audit --progress-spinner off --skip-editable
 ```
 
 ## Code Style
@@ -31,7 +28,7 @@ mypy src/
 
 - **Formatter:** `ruff format` (Black-compatible)
 - **Linter:** `ruff check` (flake8 + isort + more)
-- **Type checker:** `mypy --strict` on `src/` (9 modules strict, rest with `ignore_errors`)
+- **Type checker:** `mypy src/` using the project configuration
 - **Line length:** 100 characters
 - **Target:** Python 3.11+
 
@@ -40,7 +37,7 @@ mypy src/
 - Type hints on all public functions
 - Pydantic models for all data structures
 - Docstrings: Google style for modules/classes, one-liner for simple functions
-- No `print()` in library code — use `structlog` (configured in services)
+- No `print()` in library code — use standard logging without resume or JD content
 
 ### Commit Messages
 
@@ -66,31 +63,31 @@ refactor: extract skill matching to separate function
 2. **Make changes** with tests:
    - Add tests for new functionality
    - Ensure all existing tests pass
-   - Run `ruff check . && mypy src/` before pushing
+   - Run the focused Ruff check, `mypy src/`, and `pip-audit` before pushing
 
-3. **Push and open PR** against `Tams2411/skillroute:main`:
+3. **Push and open PR** against `AshayK003/skillroute:main`:
    - Fill the PR template
    - Link related issues
    - Screenshots for UI changes
 
 4. **Review process**:
-   - CI must pass (tests, lint, type check)
+   - CI must pass (Python 3.11/3.12 tests, lint, type check, dependency audit)
    - At least one approval required
    - Maintainer merges (squash preferred)
 
 ## Testing
 
-### Unit Tests
+### Tests
 
 ```bash
-# Run all
-pytest tests/unit/ -v
+# Run unit and integration tests
+uv run pytest -q
 
 # Specific module
-pytest tests/unit/test_scoring.py -v
+uv run pytest tests/unit/test_scoring.py -v
 
 # With coverage
-pytest tests/unit/ --cov=src/career_coach --cov-report=term-missing
+uv run pytest tests/unit/ --cov=src/career_coach --cov-report=term-missing
 ```
 
 ### Test Guidelines
@@ -120,17 +117,18 @@ skillroute/
 │   ├── config.py               # Pydantic Settings
 │   ├── domain/                 # Schemas, taxonomy, scoring
 │   ├── services/               # Parsers, extractors, gap analysis, plan, interview, tracker
-│   └── ui/                     # Theme + 6 tab implementations
+│   └── ui/                     # Theme, sidebar navigation, and page implementations
 ├── tests/
 │   ├── conftest.py
-│   └── unit/
+│   ├── unit/
+│   └── integration/
 └── .streamlit/
     └── config.toml
 ```
 
-## Adding New Skills to Taxonomy
+## Adding Skills to the Taxonomy
 
-Edit `data/skill_taxonomy.json`:
+Add the canonical skill and aliases to `DEFAULT_TAXONOMY` in `src/career_coach/domain/skill_taxonomy.py`. `data/skill_taxonomy.json` is a legacy snapshot and is not loaded by default.
 
 ```json
 {
@@ -141,14 +139,18 @@ Edit `data/skill_taxonomy.json`:
 }
 ```
 
-Run tests to verify: `pytest tests/unit/test_skill_taxonomy.py -v`
+Add or update taxonomy/extraction tests, then run `uv run pytest tests/unit/test_skill_taxonomy.py tests/unit/test_skill_extractor.py -v`.
 
-## Adding New Tab
+## Adding a Page
 
-1. Create `src/career_coach/ui/new_tab.py` with `render_new_tab()` function
-2. Import and add to `app.py` tabs list
+1. Create `src/career_coach/ui/new_page.py` with a `render_new_page()` function
+2. Add the page label to `NAVIGATION_ITEMS` and route it in `app.py`
 3. Add theme helpers to `ui/theme.py` if needed
-4. Write tests in `tests/unit/test_new_tab.py`
+4. Add coverage in `tests/integration/test_streamlit_app.py`
+
+## CI and Dependency Updates
+
+The GitHub Actions workflow is `.github/workflows/ci.yml`. It tests Python 3.11 and 3.12, runs lint/type checks and tests, then audits dependencies. When changing dependencies, update `pyproject.toml` and regenerate the lockfile with `uv lock --python 3.12`; verify with `uv lock --check` and `uv sync --extra dev --locked`.
 
 ## Reporting Issues
 
@@ -158,4 +160,4 @@ Run tests to verify: `pytest tests/unit/test_skill_taxonomy.py -v`
 
 ## License
 
-By contributing, you agree your contributions will be licensed under **AGPL-3.0** (same as the project).
+By contributing, you agree your contributions will be licensed under **MIT** (same as the project).

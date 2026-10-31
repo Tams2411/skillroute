@@ -3,7 +3,6 @@
 import pytest
 import tempfile
 import os
-from pathlib import Path
 
 
 @pytest.fixture
@@ -63,7 +62,6 @@ Responsibilities:
 def temp_pdf_file():
     """Create a temporary PDF file for testing."""
     import pypdf
-    from io import BytesIO
     
     # Create a simple PDF in memory
     writer = pypdf.PdfWriter()

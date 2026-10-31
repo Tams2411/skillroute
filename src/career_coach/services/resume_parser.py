@@ -1,18 +1,21 @@
 """Resume parser with PDF/DOCX/TXT support."""
 
 import logging
-import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Union
 
-import pypdf
 import pdfplumber
+import pypdf
 from docx import Document
 
 from career_coach.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+class _PDFPageLimitError(ValueError):
+    """Raised when a PDF exceeds the configured page limit."""
 
 
 class ResumeParser:
@@ -60,10 +63,10 @@ class ResumeParser:
         # Check cache
         cache_key = f"{path.name}:{file_size}:{path.stat().st_mtime}"
         if cache_key in self._cache:
-            logger.info(f"Cache hit for: {path.name}")
+            logger.info("Resume extraction cache hit")
             return self._cache[cache_key]
 
-        logger.info(f"Extracting text from: {path.name}")
+        logger.info("Extracting resume text")
 
         if suffix == ".pdf":
             text = self._extract_pdf(path)
@@ -88,7 +91,7 @@ class ResumeParser:
 
                 # Check page count
                 if len(reader.pages) > self.MAX_PAGES:
-                    raise ValueError(
+                    raise _PDFPageLimitError(
                         f"PDF has {len(reader.pages)} pages, limit is {self.MAX_PAGES}"
                     )
 
@@ -101,15 +104,17 @@ class ResumeParser:
             if text:
                 return text
             errors.append("pypdf: no text extracted")
-        except Exception as e:
-            logger.debug(f"pypdf extraction failed: {e}")
-            errors.append(f"pypdf: {str(e)}")
+        except _PDFPageLimitError:
+            raise
+        except Exception as exc:
+            logger.debug("pypdf extraction failed (%s)", type(exc).__name__)
+            errors.append("pypdf extraction failed")
 
         # Fallback to pdfplumber
         try:
             with pdfplumber.open(file_path) as pdf:
                 if len(pdf.pages) > self.MAX_PAGES:
-                    raise ValueError(
+                    raise _PDFPageLimitError(
                         f"PDF has {len(pdf.pages)} pages, limit is {self.MAX_PAGES}"
                     )
 
@@ -118,12 +123,16 @@ class ResumeParser:
                     return text
                 if not errors:
                     return ""
-        except Exception as e:
-            logger.debug(f"pdfplumber extraction failed: {e}")
-            errors.append(f"pdfplumber: {str(e)}")
+        except _PDFPageLimitError:
+            raise
+        except Exception as exc:
+            logger.debug("pdfplumber extraction failed (%s)", type(exc).__name__)
+            errors.append("pdfplumber extraction failed")
 
         if errors:
-            raise Exception(f"PDF extraction failed: {'; '.join(errors)}")
+            raise ValueError(
+                "PDF extraction failed; use a readable, unencrypted PDF with selectable text."
+            )
         return ""
 
     def _extract_docx(self, file_path: Path) -> str:
@@ -140,16 +149,16 @@ class ResumeParser:
                             paragraphs.append(cell.text)
 
             return "\n".join(p for p in paragraphs if p.strip()).strip()
-        except Exception as e:
-            logger.error(f"DOCX extraction failed: {e}")
+        except Exception as exc:
+            logger.error("DOCX extraction failed (%s)", type(exc).__name__)
             raise
 
     def _extract_txt(self, file_path: Path) -> str:
         """Extract text from plain text file."""
         try:
             return file_path.read_text(encoding="utf-8", errors="ignore").strip()
-        except Exception as e:
-            logger.error(f"TXT extraction failed: {e}")
+        except Exception as exc:
+            logger.error("TXT extraction failed (%s)", type(exc).__name__)
             raise
 
     def clear_cache(self) -> None:
