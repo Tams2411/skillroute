@@ -19,12 +19,12 @@ Priority combines user harm, correctness, and dependency order. A P0 issue can m
 
 ### Phase 0 — Stabilize correctness (P0)
 
-- [ ] **0.1 Insufficient data:** replace the empty-requirement 100% result with an explicit insufficient-data state; UI must not display a readiness percentage for that case.
-- [ ] **0.2 Manual skill normalization:** resolve canonical names, case/whitespace, and known aliases; deduplicate inputs; surface unknown skills without treating them as canonical.
-- [ ] **0.3 Honest evidence levels:** keep self-reported/confirmed skills distinct from demonstrated and independently corroborated evidence; update tests that currently expect confirmation to mean `verified`.
-- [ ] **0.4 Confidence and provenance:** preserve resume and JD extraction confidence/source through assessment records without conflating them with evidence strength or requirement importance.
-- [ ] **0.5 JD requirement context:** represent required, preferred, and other supported contextual sections explicitly; verify exclusion of benefits and non-requirements.
-- [ ] **0.6 Taxonomy distinctions:** remove aliases that merge related-but-distinct tools; add positive, negative, and ambiguous-term tests.
+- [x] **0.1 Insufficient data:** replace the empty-requirement 100% result with an explicit insufficient-data state; UI must not display a readiness percentage for that case. (PR #7)
+- [x] **0.2 Manual skill normalization:** resolve canonical names, case/whitespace, and known aliases; deduplicate inputs; surface unknown skills without treating them as canonical. (PR #8)
+- [x] **0.3 Honest evidence levels:** keep self-reported/confirmed skills distinct from demonstrated and independently corroborated evidence; update tests that currently expect confirmation to mean `verified`. (PR #8)
+- [x] **0.4 Confidence and provenance:** preserve resume extraction confidence/source through assessment records without conflating them with evidence strength or requirement importance. (PR #9)
+- [x] **0.5 JD requirement context:** represent required, preferred, and supported responsibility, experience, and education sections explicitly; verify exclusion of benefits and non-requirements. (PR #10)
+- [x] **0.6 Taxonomy distinctions:** remove aliases that merge related-but-distinct tools; add positive and negative extraction tests. (PR #11)
 
 **Phase exit:** full tests, configured lint, type checks, and dependency audit pass; empty inputs and the sample workflow are covered; score labels accurately describe what is measured.
 
@@ -86,8 +86,10 @@ For every implementation PR:
 - [x] Establish baseline and verify the existing mainline PR.
 - [x] Audit the six Phase 0 correctness areas and record code/test evidence in `IMPLEMENTATION_AUDIT.md`.
 - [x] Open the audit/roadmap PR.
-- [ ] Start Phase 0.1 as the first correctness PR after the roadmap is reviewable.
-- [ ] Continue one scoped PR per Phase 0 invariant, then proceed through later phases only after each exit gate passes.
+- [x] Implement all six Phase 0 correctness items as scoped, stacked PRs (#7–#11); required CI checks pass.
+- [ ] Merge the roadmap and Phase 0 PRs in dependency order before starting the evidence foundation.
+
+The Phase 0 PRs are open for review and merge. The latest full local suite passed 97 tests at 80% coverage; a later UI regression test passed separately and PR #10 CI passed after that fix. Ruff, mypy, and dependency auditing passed.
 
 ## Baseline
 
