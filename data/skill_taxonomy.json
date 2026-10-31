@@ -1,0 +1,242 @@
+{
+  "programming": {
+    "canonical": "python",
+    "aliases": ["python", "python programming", "py", "python3"],
+    "category": "programming",
+    "related": ["pandas", "numpy", "fastapi", "django", "flask"]
+  },
+  "sql": {
+    "canonical": "sql",
+    "aliases": ["sql", "structured query language", "postgresql", "mysql", "sqlite", "postgres", "tsql"],
+    "category": "data",
+    "related": ["postgresql", "mysql", "sqlite", "data modeling"]
+  },
+  "pandas": {
+    "canonical": "pandas",
+    "aliases": ["pandas", "pandas python", "pd"],
+    "category": "data",
+    "related": ["numpy", "python", "data visualization", "data cleaning"]
+  },
+  "numpy": {
+    "canonical": "numpy",
+    "aliases": ["numpy", "numpy python", "np"],
+    "category": "data",
+    "related": ["pandas", "python", "scipy", "mathematics"]
+  },
+  "pytorch": {
+    "canonical": "pytorch",
+    "aliases": ["pytorch", "torch", "pytorch lightning"],
+    "category": "ml",
+    "related": ["tensorflow", "machine learning", "deep learning", "model deployment"]
+  },
+  "tensorflow": {
+    "canonical": "tensorflow",
+    "aliases": ["tensorflow", "tf", "keras", "tf.keras"],
+    "category": "ml",
+    "related": ["pytorch", "machine learning", "deep learning", "model deployment"]
+  },
+  "scikit-learn": {
+    "canonical": "scikit-learn",
+    "aliases": ["scikit-learn", "sklearn", "sklearn python", "scikit learn"],
+    "category": "ml",
+    "related": ["pandas", "numpy", "machine learning", "feature engineering"]
+  },
+  "airflow": {
+    "canonical": "airflow",
+    "aliases": ["apache airflow", "airflow", "airflow orchestrator", "airflow dag"],
+    "category": "orchestration",
+    "related": ["docker", "kubernetes", "data engineering", "etl"]
+  },
+  "docker": {
+    "canonical": "docker",
+    "aliases": ["docker", "containerization", "docker containers", "docker compose"],
+    "category": "devops",
+    "related": ["kubernetes", "ci/cd", "aws", "gcp", "azure"]
+  },
+  "kubernetes": {
+    "canonical": "kubernetes",
+    "aliases": ["kubernetes", "k8s", "k8s orchestration", "kubectl"],
+    "category": "devops",
+    "related": ["docker", "helm", "aws", "gcp", "azure", "ci/cd"]
+  },
+  "aws": {
+    "canonical": "aws",
+    "aliases": ["aws", "amazon web services", "amazon aws", "ec2", "s3", "lambda", "rds"],
+    "category": "cloud",
+    "related": ["docker", "kubernetes", "terraform", "ci/cd"]
+  },
+  "gcp": {
+    "canonical": "gcp",
+    "aliases": ["gcp", "google cloud", "google cloud platform", "bigquery", "vertex ai"],
+    "category": "cloud",
+    "related": ["docker", "kubernetes", "terraform", "bigquery"]
+  },
+  "azure": {
+    "canonical": "azure",
+    "aliases": ["azure", "microsoft azure", "azure functions", "azure devops"],
+    "category": "cloud",
+    "related": ["docker", "kubernetes", "terraform", "ci/cd"]
+  },
+  "spark": {
+    "canonical": "spark",
+    "aliases": ["apache spark", "spark", "pyspark", "spark scala", "spark sql"],
+    "category": "data engineering",
+    "related": ["kafka", "airflow", "databricks", "delta lake"]
+  },
+  "kafka": {
+    "canonical": "kafka",
+    "aliases": ["apache kafka", "kafka", "kafka messaging", "kafka streams", "confluent"],
+    "category": "data engineering",
+    "related": ["spark", "airflow", "redis", "microservices"]
+  },
+  "redis": {
+    "canonical": "redis",
+    "aliases": ["redis", "redis cache", "redis pub/sub", "redis streams"],
+    "category": "data engineering",
+    "related": ["kafka", "celery", "fastapi", "caching"]
+  },
+  "postgresql": {
+    "canonical": "postgresql",
+    "aliases": ["postgresql", "postgres", "psql", "postgresql database"],
+    "category": "data",
+    "related": ["sql", "django", "fastapi", "orm", "database design"]
+  },
+  "mongodb": {
+    "canonical": "mongodb",
+    "aliases": ["mongodb", "mongo", "nosql", "mongoose"],
+    "category": "data",
+    "related": ["redis", "elasticsearch", "node.js", "express"]
+  },
+  "elasticsearch": {
+    "canonical": "elasticsearch",
+    "aliases": ["elasticsearch", "elastic search", "es", "elk stack", "opensearch"],
+    "category": "data engineering",
+    "related": ["logstash", "kibana", "kafka", "search"]
+  },
+  "fastapi": {
+    "canonical": "fastapi",
+    "aliases": ["fastapi", "fast api", "pydantic", "starlette"],
+    "category": "backend",
+    "related": ["pydantic", "sqlalchemy", "postgresql", "redis", "docker"]
+  },
+  "flask": {
+    "canonical": "flask",
+    "aliases": ["flask", "flask python", "flask restful"],
+    "category": "backend",
+    "related": ["sqlalchemy", "postgresql", "redis", "docker"]
+  },
+  "django": {
+    "canonical": "django",
+    "aliases": ["django", "django python", "django rest framework", "drf"],
+    "category": "backend",
+    "related": ["postgresql", "redis", "celery", "docker"]
+  },
+  "react": {
+    "canonical": "react",
+    "aliases": ["react", "reactjs", "react.js", "next.js", "nextjs"],
+    "category": "frontend",
+    "related": ["typescript", "javascript", "redux", "tailwind"]
+  },
+  "typescript": {
+    "canonical": "typescript",
+    "aliases": ["typescript", "ts", "tsx"],
+    "category": "frontend",
+    "related": ["react", "javascript", "node.js", "nestjs"]
+  },
+  "git": {
+    "canonical": "git",
+    "aliases": ["git", "version control", "github", "gitlab", "bitbucket"],
+    "category": "tools",
+    "related": ["ci/cd", "github actions", "gitlab ci", "code review"]
+  },
+  "ci/cd": {
+    "canonical": "ci/cd",
+    "aliases": ["ci/cd", "continuous integration", "continuous deployment", "github actions", "gitlab ci", "jenkins"],
+    "category": "devops",
+    "related": ["docker", "kubernetes", "git", "testing"]
+  },
+  "terraform": {
+    "canonical": "terraform",
+    "aliases": ["terraform", "infrastructure as code", "iac", "terraform cloud"],
+    "category": "devops",
+    "related": ["aws", "gcp", "azure", "kubernetes", "ci/cd"]
+  },
+  "mlops": {
+    "canonical": "mlops",
+    "aliases": ["mlops", "ml ops", "machine learning operations", "model monitoring", "model registry"],
+    "category": "ml",
+    "related": ["docker", "kubernetes", "model deployment", "feature engineering"]
+  },
+  "feature engineering": {
+    "canonical": "feature engineering",
+    "aliases": ["feature engineering", "feature eng", "feature selection", "feature extraction"],
+    "category": "ml",
+    "related": ["scikit-learn", "pandas", "machine learning", "data preprocessing"]
+  },
+  "model deployment": {
+    "canonical": "model deployment",
+    "aliases": ["model deployment", "model serving", "model serving api", "model inference", "onnx", "triton"],
+    "category": "ml",
+    "related": ["docker", "kubernetes", "fastapi", "mlops", "monitoring"]
+  },
+  "data visualization": {
+    "canonical": "data visualization",
+    "aliases": ["data visualization", "visualization", "matplotlib", "seaborn", "plotly", "tableau", "power bi", "bokeh"],
+    "category": "data",
+    "related": ["pandas", "numpy", "statistics", "storytelling"]
+  },
+  "statistics": {
+    "canonical": "statistics",
+    "aliases": ["statistics", "statistical analysis", "stats", "hypothesis testing", "ab testing"],
+    "category": "data",
+    "related": ["probability", "machine learning", "data analysis", "experiment design"]
+  },
+  "probability": {
+    "canonical": "probability",
+    "aliases": ["probability", "probabilistic modeling", "bayesian", "markov chains"],
+    "category": "data",
+    "related": ["statistics", "machine learning", "mathematics"]
+  },
+  "algorithms": {
+    "canonical": "algorithms",
+    "aliases": ["algorithms", "algo", "data structures and algorithms", "dsa", "leetcode"],
+    "category": "programming",
+    "related": ["python", "system design", "competitive programming"]
+  },
+  "system design": {
+    "canonical": "system design",
+    "aliases": ["system design", "architecture design", "distributed systems", "scalability", "high availability"],
+    "category": "backend",
+    "related": ["microservices", "docker", "kubernetes", "aws", "databases"]
+  },
+  "microservices": {
+    "canonical": "microservices",
+    "aliases": ["microservices", "micro services", "service oriented architecture", "soa", "domain driven design"],
+    "category": "backend",
+    "related": ["system design", "docker", "kubernetes", "api gateway", "grpc"]
+  },
+  "rest api": {
+    "canonical": "rest api",
+    "aliases": ["rest api", "restful api", "rest", "openapi", "swagger"],
+    "category": "backend",
+    "related": ["fastapi", "django", "flask", "graphql", "api design"]
+  },
+  "graphql": {
+    "canonical": "graphql",
+    "aliases": ["graphql", "graph ql", "apollo", "relay"],
+    "category": "backend",
+    "related": ["rest api", "react", "typescript", "apollo"]
+  },
+  "testing": {
+    "canonical": "testing",
+    "aliases": ["testing", "unit testing", "integration testing", "pytest", "jest", "vitest", "playwright", "tdd"],
+    "category": "programming",
+    "related": ["ci/cd", "pytest", "coverage", "quality assurance"]
+  },
+  "agile": {
+    "canonical": "agile",
+    "aliases": ["agile", "scrum", "kanban", "agile methodology", "sprint", "standup", "retrospective"],
+    "category": "process",
+    "related": ["jira", "project management", "team collaboration"]
+  }
+}
