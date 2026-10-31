@@ -1,5 +1,6 @@
 """Tests for escaping untrusted text in HTML render helpers."""
 
+from career_coach.domain.schemas import SkillGap, SkillRequirementType
 from career_coach.ui.theme import (
     render_alert,
     render_chip,
@@ -73,6 +74,23 @@ def test_skill_card_distinguishes_evidence_source_confidence_and_strength():
     assert "Source: resume" in rendered
     assert "Extraction confidence: 86%" in rendered
     assert "Evidence strength: 40%" in rendered
+
+
+def test_skill_card_renders_requirement_enum_as_readable_context():
+    gap = SkillGap(
+        canonical_skill="docker",
+        role_relevance=0.65,
+        evidence_strength=0.0,
+        extraction_confidence=0.9,
+        priority=0.585,
+        reason="Listed under responsibilities",
+        requirement_type=SkillRequirementType.RESPONSIBILITY,
+    )
+
+    rendered = render_skill_card(gap.model_dump(), show_priority=True)
+
+    assert "JD context: responsibility" in rendered
+    assert "SkillRequirementType" not in rendered
 
 
 def test_badges_and_alerts_escape_untrusted_text():
