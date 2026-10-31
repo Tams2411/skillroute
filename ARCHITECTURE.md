@@ -70,6 +70,8 @@ Manually entered skills are normalized through the taxonomy. Recognized claims u
 
 Weighted evidence coverage is a heuristic summary of evidence against extracted requirements. If no requirements with positive total importance are extracted, the state is `insufficient_data` and no score or percentage is returned. The UI shows an explanatory message instead of presenting a perfect score or claiming the user is prepared. This metric does not predict hiring outcomes or establish proficiency.
 
+Resume evidence records preserve their source and extraction confidence separately from evidence strength. Extraction confidence describes the system's certainty that it found a skill mention; it does not verify the user's proficiency and does not change the evidence weight or readiness calculation.
+
 ## Persistence and Data Flow
 
 | Data | Storage |

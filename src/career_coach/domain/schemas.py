@@ -46,6 +46,7 @@ class SkillEvidence(BaseModel):
     source: str = Field(min_length=1, max_length=40)
     supporting_evidence: str = Field(default="", max_length=1200)
     user_confirmed: bool = False
+    extraction_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class JobSkillRequirement(BaseModel):
@@ -71,6 +72,8 @@ class SkillGap(BaseModel):
     uncertainty: str = Field(default="", max_length=500)
     jd_evidence: str = Field(default="", max_length=500)
     resume_evidence: str = Field(default="", max_length=500)
+    resume_evidence_source: str = Field(default="", max_length=40)
+    resume_extraction_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class LearningTask(BaseModel):

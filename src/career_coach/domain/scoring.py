@@ -57,10 +57,14 @@ def compute_skill_gap(
         evidence_level = EvidenceLevel.NONE
         evidence_strength = 0.0
         resume_evidence_str = "No evidence found in resume"
+        resume_evidence_source = ""
+        resume_extraction_confidence = 0.0
     else:
         evidence_level = resume_evidence.evidence_level
         evidence_strength = evidence_level_to_weight(evidence_level)
         resume_evidence_str = resume_evidence.supporting_evidence or f"Evidence level: {evidence_level.value}"
+        resume_evidence_source = resume_evidence.source
+        resume_extraction_confidence = resume_evidence.extraction_confidence
 
     # Role relevance from JD importance
     role_relevance = jd_skill.importance
@@ -106,6 +110,8 @@ def compute_skill_gap(
         uncertainty=uncertainty,
         jd_evidence=jd_skill.evidence_phrase or "",
         resume_evidence=resume_evidence_str,
+        resume_evidence_source=resume_evidence_source,
+        resume_extraction_confidence=resume_extraction_confidence,
     )
 
 

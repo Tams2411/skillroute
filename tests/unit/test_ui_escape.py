@@ -58,6 +58,23 @@ def test_skill_card_labels_and_discloses_self_reported_evidence():
     assert "Evidence: Self-reported by user; not independently verified..." in rendered
 
 
+def test_skill_card_distinguishes_evidence_source_confidence_and_strength():
+    rendered = render_skill_card(
+        {
+            "canonical_skill": "python",
+            "evidence_level": "demonstrated",
+            "evidence_strength": 0.4,
+            "resume_evidence_source": "resume",
+            "resume_extraction_confidence": 0.86,
+            "resume_evidence": "Built production services using Python.",
+        }
+    )
+
+    assert "Source: resume" in rendered
+    assert "Extraction confidence: 86%" in rendered
+    assert "Evidence strength: 40%" in rendered
+
+
 def test_badges_and_alerts_escape_untrusted_text():
     payload = '<img src=x onerror="alert(1)">'
 

@@ -120,6 +120,7 @@ class SkillGapService:
                 source=rs.source,
                 supporting_evidence=rs.supporting_evidence,
                 user_confirmed=rs.user_confirmed,
+                extraction_confidence=rs.extraction_confidence,
             )
             for rs in resume_skills
         }
@@ -167,6 +168,10 @@ class SkillGapService:
                     "evidence_level": resume_evidence_map[jd_req.canonical_skill].evidence_level.value,
                     "evidence_strength": calculate_evidence_strength(
                         resume_evidence_map[jd_req.canonical_skill].evidence_level
+                    ),
+                    "evidence_source": resume_evidence_map[jd_req.canonical_skill].source,
+                    "extraction_confidence": (
+                        resume_evidence_map[jd_req.canonical_skill].extraction_confidence
                     ),
                     "user_confirmed": resume_evidence_map[jd_req.canonical_skill].user_confirmed,
                 })

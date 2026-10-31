@@ -43,6 +43,38 @@ def test_analysis_generates_role_specific_plan_and_interview(sample_resume_text,
     assert all(session.target_role == "Senior Data Engineer" for session in sessions)
 
 
+def test_analysis_preserves_resume_source_and_extraction_confidence():
+    results = SkillGapService().analyze(
+        resume_text="Built production services using Python.",
+        jd_text="Required Skills:\n- Python",
+    )
+
+    python_gap = next(gap for gap in results["gaps"] if gap["canonical_skill"] == "python")
+    python_match = next(
+        skill for skill in results["matched_skills"] if skill["canonical_skill"] == "python"
+    )
+
+    assert python_gap["resume_evidence_source"] == "resume"
+    assert 0.0 < python_gap["resume_extraction_confidence"] <= 1.0
+    assert 0.0 < python_gap["extraction_confidence"] <= 1.0
+    assert python_match["evidence_source"] == "resume"
+    assert python_match["extraction_confidence"] == python_gap["resume_extraction_confidence"]
+
+
+def test_legacy_gap_records_default_new_provenance_fields():
+    legacy_gap = SkillGap.model_validate({
+        "canonical_skill": "python",
+        "role_relevance": 0.8,
+        "evidence_strength": 0.0,
+        "extraction_confidence": 0.9,
+        "priority": 0.72,
+        "reason": "Required for the role",
+    })
+
+    assert legacy_gap.resume_evidence_source == ""
+    assert legacy_gap.resume_extraction_confidence == 0.0
+
+
 def test_analysis_with_no_extracted_requirements_reports_insufficient_data(sample_resume_text):
     results = SkillGapService().analyze(
         resume_text=sample_resume_text,
