@@ -14,9 +14,9 @@ from career_coach.ui.intake import SAMPLE_JD, render_intake_tab, render_results
 from career_coach.ui.interview import render_interview_tab
 from career_coach.ui.navigation import NAVIGATION_ITEMS
 from career_coach.ui.plan import render_plan_tab
-from career_coach.ui.session_state import clear_analysis_state, reset_workspace
-from career_coach.ui.tracker import render_tracker_tab
+from career_coach.ui.session_state import reset_workspace
 from career_coach.ui.theme import apply_theme
+from career_coach.ui.tracker import render_tracker_tab
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,9 @@ def init_session_state() -> None:
         "resume_text": "",
         "jd_text": "",
         "user_skills": "",
+        "gemini_api_key": "",
+        "gemini_interview_consent": False,
+        "interview_ai_feedback": {},
         "active_tab": "Intake",
         "current_step": "intake",
         "input_generation": 0,
@@ -130,7 +133,7 @@ def render_sidebar() -> str:
         
         st.markdown("""
         <div class="status-indicator status-info">
-            Deterministic analysis — no AI requests
+            Core analysis is deterministic; Gemini is optional
         </div>
         """, unsafe_allow_html=True)
         
@@ -142,6 +145,34 @@ def render_sidebar() -> str:
         st.caption(
             "Single-user demo. Tracker records are plain text and shared by this app instance."
         )
+
+        with st.expander("Optional Gemini interview feedback"):
+            st.caption(
+                "The deterministic interview rubric works without AI. Gemini is only called "
+                "after you request feedback for an answer."
+            )
+            st.text_input(
+                "Gemini API key",
+                key="gemini_api_key",
+                type="password",
+                max_chars=256,
+                help="The key is held in this Streamlit session and is not written to app files or logs.",
+            )
+            st.checkbox(
+                "I consent to send my interview answer, question, role, and skill to Google Gemini.",
+                key="gemini_interview_consent",
+            )
+            st.caption(
+                "Requests pass through this app server. The host can access session memory; "
+                "only enter a key if you trust this host. Google receives the selected interview "
+                "content, and Gemini usage may incur cost or quota limits. Resume and JD text "
+                "are not sent."
+            )
+            st.button(
+                "Clear Gemini key and consent",
+                key="clear_gemini_credentials",
+                on_click=clear_gemini_credentials,
+            )
         
         st.divider()
         
@@ -192,6 +223,12 @@ Max Pages: {settings.max_pdf_pages}
         """, unsafe_allow_html=True)
 
     return st.session_state["active_tab"]
+
+
+def clear_gemini_credentials() -> None:
+    """Clear the user-provided key and provider consent from this session."""
+    st.session_state["gemini_api_key"] = ""
+    st.session_state["gemini_interview_consent"] = False
 
 
 def main() -> None:

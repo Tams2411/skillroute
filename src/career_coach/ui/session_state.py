@@ -5,14 +5,16 @@ import streamlit as st
 
 def clear_analysis_state() -> None:
     """Clear generated analysis and derived learning/interview results."""
-    for key, value in {
+    state_defaults: dict[str, object] = {
         "analysis_results": None,
         "learning_plan": None,
         "project_recommendations": None,
         "interview_sessions": None,
         "interview_current": 0,
+        "interview_ai_feedback": {},
         "show_interview_results": False,
-    }.items():
+    }
+    for key, value in state_defaults.items():
         st.session_state[key] = value
 
     for state_key in list(st.session_state):

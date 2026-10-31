@@ -4,7 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/AshayK003/skillroute/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AshayK003/skillroute/actions/workflows/ci.yml)
 
-**A local, deterministic career-pivot coach that compares resume evidence with a job description, prioritizes skill gaps, and supports learning plans, interview practice, and application tracking.**
+**A local-first career-pivot coach that compares resume evidence with a job description, prioritizes skill gaps, and supports learning plans, interview practice, and application tracking. Core analysis is deterministic; optional Gemini feedback can help users review mock-interview answers.**
 
 ---
 
@@ -26,9 +26,9 @@ uv sync --extra dev --locked
 uv run streamlit run app.py --server.address=127.0.0.1
 ```
 
-Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job description, and select **Analyze Skill Gaps**. No API keys or external services are used by the app workflow.
+Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job description, and select **Analyze Skill Gaps**. The default workflow needs no API key and makes no external AI requests; Gemini is called only for explicitly requested, consented interview feedback.
 
-> **Hosted demo warning:** The app has no authentication. Tracker entries are plaintext JSON shared by users of the same app instance, and Streamlit Community Cloud does not guarantee persistence of local files. Do not enter real or sensitive resume, job-description, or application data in a hosted demo.
+> **Hosted demo warning:** The app has no authentication. Tracker entries are plaintext JSON shared by users of the same app instance, and Streamlit Community Cloud does not guarantee persistence of local files. Do not enter real or sensitive resume, job-description, or application data in a hosted demo. Optional Gemini feedback sends the selected interview answer, question, target role, and skill to Google only after explicit consent and a request; it does not send resume/JD text.
 
 ---
 
@@ -39,14 +39,15 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | **Intake** | Upload resume (PDF/DOCX/TXT) + paste JD → instant skill extraction with evidence levels |
 | **Assessment** | Gap analysis with priority scoring: `Relevance × (1 − Evidence) × Extraction Confidence` |
 | **Plan** | Weekly learning tasks, curated resources, and project recommendations |
-| **Interview** | Rubric-based mock questions (technical + behavioral) with self-evaluation scoring |
+| **Interview** | Rubric-based mock questions (technical + behavioral), self-evaluation scoring, and optional Gemini feedback |
 | **Tracker** | Application CRUD — company, role, URL, status, notes + response/interview/offer rates |
 | **Dashboard** | Readiness score, gap distribution, application stats, quick-action cards |
 
 ### Core Design Principles
 
 - **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/DEMONSTRATED/VERIFIED), with a transparent priority score.
-- **Privacy-conscious local workflow** — Resume and job-description text are processed locally and are not sent to an AI provider.
+- **Deterministic by default** — Core resume/JD analysis and scoring run locally without an AI provider.
+- **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.
 - **Validated inputs** — Upload size/page limits and pasted-text limits are enforced.
 - **Local persistence** — Application records are stored in `data/applications.json`.
 - **Six-page Streamlit UI** — Sidebar navigation for intake, assessment, learning plan, interview practice, tracker, and dashboard.
@@ -99,7 +100,8 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | `services/skill_extractor.py` | Evidence-level inference from context, taxonomy normalization |
 | `services/skill_gap_service.py` | Full analysis pipeline orchestration |
 | `services/plan_generator.py` | Learning plan + project recommendations from top gaps |
-| `services/interview_service.py` | Skill-focused technical/behavioral questions + self-evaluation rubrics |
+| `services/interview_service.py` | Skill-focused technical/behavioral questions + deterministic self-evaluation rubrics |
+| `services/gemini_interview_service.py` | Optional Gemini interview feedback, bounded requests, and strict response validation |
 | `services/tracker_service.py` | Application tracking with JSON persistence |
 | `ui/theme.py` | Professional dark theme (550 lines, CSS variables, SVG icons) |
 | `ui/*.py` | Page implementations, sidebar navigation, and shared theme |
@@ -110,7 +112,7 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 2. **JD Parse** → `JDParser` splits into sections → `SkillExtractor` maps to taxonomy
 3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps`, and a heuristic readiness score
 4. **Plan** → `plan_generator` creates weekly tasks and project recommendations from prioritized gaps
-5. **Interview** → `InterviewService` creates questions + rubrics per gap category
+5. **Interview** → `InterviewService` creates questions + deterministic rubrics; an explicit, consented request can send the answer/question/role/skill to Gemini for advisory feedback
 6. **Tracker** → `ApplicationTracker` persists applications to `data/applications.json`
 7. **Dashboard** → Aggregates readiness, stats, recent activity
 
@@ -118,7 +120,9 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 
 ## Configuration
 
-Settings are optional; defaults are listed below. Copy `.env.example` to `.env` to override them. This version does not use API keys, a database URL, or a session secret.
+Settings are optional; defaults are listed below. Copy `.env.example` to `.env` to override them. Gemini does not require server configuration: a user may enter their own key in the sidebar for optional interview feedback. The key is held in Streamlit session memory, not persisted to app files or logged.
+
+**Key and data handling:** Enter a key only when you trust the app host. The browser sends the key to the Streamlit server, which uses it in an HTTPS request to Google. The app does not save or log the key. An answer is sent only after the user checks the consent box and presses **Get Gemini feedback**; only the answer, interview question, target role, and skill are included. Resume and JD text are not sent. Google account terms, quotas, and charges may apply. If Gemini fails, deterministic self-evaluation remains available.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -147,7 +151,7 @@ uv run pytest -q
 uv run pytest -q --cov=src/career_coach --cov-report=term-missing
 ```
 
-The suite includes unit and Streamlit integration tests for sample analysis, plan and interview generation, navigation, input safety, and tracker persistence.
+The suite includes unit and Streamlit integration tests for sample analysis, plan and interview generation, optional Gemini request validation and failure handling, navigation, input safety, and tracker persistence.
 
 ### Test Structure
 

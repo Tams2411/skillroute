@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - GitHub Actions CI for Python 3.11/3.12, focused linting, type checking, coverage-enabled tests, and dependency auditing
+- Optional Gemini interview feedback with explicit consent, session-only user keys, strict response validation, and deterministic fallback
 - `uv.lock` for reproducible app and development dependency installs
 - Streamlit Community Cloud setup and branch-protection guidance
 - Integration coverage for analysis, learning plans, interview practice, tracker persistence, and input safety
@@ -55,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sidebar sample/reset actions now clear stale generated results safely; editing intake inputs invalidates derived analysis
 - Added a visible warning that hosted tracker records are plaintext and shared by the app instance
 - Configuration and documentation now reflect deterministic local analysis and plaintext JSON storage
+- README, architecture, and limitations now document Gemini's data flow, key handling, provider costs, and fallback behavior
 - Added the MIT license and declared the PDF/DOCX parser dependencies
 - Replaced non-programmatic tabs with working sidebar page navigation and preserved intake values across pages
 - Added skill-specific learning resources and merged duplicate project recommendations

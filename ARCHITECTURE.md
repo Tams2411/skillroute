@@ -6,7 +6,7 @@
 
 ## Overview
 
-SkillRoute is a local-first Streamlit application organized as a modular Python package. It has no public API, database service, authentication, or active AI-provider integration. Analysis is deterministic and runs in the app process. Streamlit Community Cloud can host an unauthenticated demo, but it does not make the app a private or persistent multi-user service.
+SkillRoute is a local-first Streamlit application organized as a modular Python package. It has no public API, database service, or authentication. Core analysis is deterministic and runs in the app process. An optional Gemini adapter provides advisory interview feedback only after a user supplies a key, consents to sharing the answer, and requests feedback. Streamlit Community Cloud can host an unauthenticated demo, but it does not make the app a private or persistent multi-user service.
 
 ```text
 app.py (six sidebar-navigated pages)
@@ -14,7 +14,8 @@ app.py (six sidebar-navigated pages)
   │             └─ SkillGapService → ranked gap data
   ├─ Assessment → explainable gap and evidence display
   ├─ Plan → learning tasks and project recommendations
-  ├─ Interview → static questions and self-evaluation rubric
+  ├─ Interview → static questions and deterministic self-evaluation
+  │               └─ explicit user request → Gemini advisory feedback
   ├─ Tracker → ApplicationTracker → data/applications.json (shared plaintext file)
   └─ Dashboard → analysis summary + tracker statistics
 ```
@@ -32,6 +33,7 @@ app.py (six sidebar-navigated pages)
 | `services/skill_gap_service.py` | Parsing/extraction/scoring orchestration |
 | `services/plan_generator.py` | Template-based learning tasks and project recommendations |
 | `services/interview_service.py` | Static question selection and rubric evaluation |
+| `services/gemini_interview_service.py` | Optional Gemini request, timeout/size bounds, and strict response validation |
 | `services/tracker_service.py` | Local JSON-backed application CRUD and statistics |
 | `ui/*.py` | Intake, assessment, plan, interview, tracker, dashboard, navigation, and shared state |
 
@@ -69,10 +71,10 @@ Readiness is a weighted evidence-coverage heuristic. Neither score predicts hiri
 |---|---|
 | Skill taxonomy | `data/skill_taxonomy.json` |
 | Application records and tracker notes/JD text | `data/applications.json` |
-| Current analysis and practice state | Streamlit session memory |
+| Current analysis, practice state, and user-entered Gemini key | Streamlit session memory |
 | Uploaded resume during parsing | Temporary file, removed after parsing |
 
-There is no SQL database configured or used. Resume/JD analysis is not persisted as a profile, and the current application workflow makes no external AI requests.
+There is no SQL database configured or used. Resume/JD analysis is not persisted as a profile. No AI request occurs unless the user enters a Gemini key, checks the consent box, and explicitly requests feedback. Only the interview answer, question, target role, and skill are sent; resume/JD text is excluded. The key is sent to the app server and held in session memory, not written to files or logged; a hosted server operator can access its process memory. API requests use an HTTPS header, a 30-second timeout, and bounded response reads. Provider errors are surfaced while deterministic self-evaluation remains usable.
 
 On Streamlit Community Cloud, the JSON tracker remains shared by the app instance and local filesystem persistence is not guaranteed. The app has no authentication, so hosted use is demonstration-only and must not contain sensitive data.
 
@@ -93,6 +95,7 @@ Streamlit's upload cap is configured to 5 MB in `.streamlit/config.toml`. No sep
 - Unexpected analysis errors are shown without stack traces; parser logs omit resume filenames and contents.
 - Dynamic text interpolated into custom HTML components is HTML-escaped.
 - Uploaded files are processed locally and the temporary file is cleaned up after parsing.
+- Optional Gemini feedback never changes core analysis or saved self-evaluation scores; model output is schema-validated and displayed as advisory.
 - The app has no authentication or rate limiting. Bind it to localhost and do not expose it to untrusted users or networks.
 - Tracker JSON is plaintext, shared by app users, and does not provide concurrency locking.
 
@@ -114,4 +117,4 @@ GitHub Actions runs these checks across Python 3.11 and 3.12. Streamlit AppTests
 
 ## Planned Evolution
 
-Hosted persistence, authentication, semantic matching, AI-assisted analysis, and production monitoring are not part of the current MVP. Add them only with explicit data-flow, privacy, and deployment requirements.
+Hosted persistence, authentication, semantic matching, AI-assisted resume/JD analysis, and production monitoring are not part of the current MVP. Add them only with explicit data-flow, privacy, and deployment requirements.
