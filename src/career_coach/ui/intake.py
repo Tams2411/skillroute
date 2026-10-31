@@ -106,8 +106,8 @@ def render_intake_tab() -> dict | None:
     
     # User confirmed skills
     st.markdown(render_section_header(
-        "Confirmed Skills (Optional)",
-        "Add skills you know you have but aren't captured in your resume",
+        "Additional Skills (Optional)",
+        "Add skills you have that aren't captured in your resume. These self-reports aren't independently verified.",
         icon="check-circle"
     ), unsafe_allow_html=True)
     
@@ -149,13 +149,34 @@ def render_intake_tab() -> dict | None:
 
 def render_results(results: dict) -> None:
     """Render the analysis results."""
-    
-    # Readiness Score
+
+    unrecognized_skills = results.get("unrecognized_user_skills", [])
+    if unrecognized_skills:
+        st.warning(
+            "These manually entered skills were not recognized and were not included: "
+            + ", ".join(unrecognized_skills)
+            + ". Check spelling or use a supported skill name or alias."
+        )
+
+    if results.get("readiness_state") == "insufficient_data":
+        st.markdown(render_section_header(
+            "Skill Gap Analysis",
+            "Insufficient data to calculate weighted evidence coverage.",
+            icon="target",
+        ), unsafe_allow_html=True)
+        st.warning(
+            "No recognizable skill requirements were found in this job description. "
+            "Review or add a job description with explicit role requirements, then analyze again."
+        )
+        return
+
+    # Weighted evidence coverage
     readiness_pct = results.get("readiness_percentage", 0)
     
     st.markdown(render_section_header(
         "Skill Gap Analysis",
-        f"Overall Readiness: {readiness_pct}% | {results.get('total_jd_skills', 0)} skills in JD",
+        f"Weighted evidence coverage: {readiness_pct}% | "
+        f"{results.get('total_jd_skills', 0)} skills in JD",
         icon="target"
     ), unsafe_allow_html=True)
     

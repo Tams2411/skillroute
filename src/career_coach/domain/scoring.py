@@ -1,6 +1,12 @@
 """Scoring and priority calculation for skill gaps."""
 
-from career_coach.domain.schemas import SkillEvidence, JobSkillRequirement, SkillGap, EvidenceLevel
+from career_coach.domain.schemas import (
+    EvidenceLevel,
+    JobSkillRequirement,
+    SkillEvidence,
+    SkillGap,
+    SkillRequirementType,
+)
 from career_coach.config import settings
 
 
@@ -57,10 +63,14 @@ def compute_skill_gap(
         evidence_level = EvidenceLevel.NONE
         evidence_strength = 0.0
         resume_evidence_str = "No evidence found in resume"
+        resume_evidence_source = ""
+        resume_extraction_confidence = 0.0
     else:
         evidence_level = resume_evidence.evidence_level
         evidence_strength = evidence_level_to_weight(evidence_level)
         resume_evidence_str = resume_evidence.supporting_evidence or f"Evidence level: {evidence_level.value}"
+        resume_evidence_source = resume_evidence.source
+        resume_extraction_confidence = resume_evidence.extraction_confidence
 
     # Role relevance from JD importance
     role_relevance = jd_skill.importance
@@ -72,20 +82,44 @@ def compute_skill_gap(
     priority = calculate_priority(role_relevance, evidence_level, extraction_confidence)
 
     # Build rationale
+    context_label = {
+        SkillRequirementType.REQUIRED: "required skills",
+        SkillRequirementType.PREFERRED: "preferred skills",
+        SkillRequirementType.SKILLS: "skills",
+        SkillRequirementType.RESPONSIBILITY: "responsibilities",
+        SkillRequirementType.EXPERIENCE: "experience",
+        SkillRequirementType.EDUCATION: "education",
+    }[jd_skill.requirement_type]
     if evidence_level == EvidenceLevel.NONE:
-        reason = f"Skill required for role (importance: {role_relevance:.0%}) but not found in resume"
+        reason = (
+            f"Skill listed under {context_label} (importance: {role_relevance:.0%}) "
+            "but not found in resume"
+        )
     elif evidence_level == EvidenceLevel.MENTIONED:
-        reason = f"Skill mentioned in resume but not demonstrated; role requires it (importance: {role_relevance:.0%})"
+        reason = (
+            f"Skill mentioned in resume but not demonstrated; listed under {context_label} "
+            f"(importance: {role_relevance:.0%})"
+        )
+    elif evidence_level == EvidenceLevel.SELF_REPORTED:
+        reason = (
+            f"Skill self-reported by user but not independently verified; "
+            f"listed under {context_label} (importance: {role_relevance:.0%})"
+        )
     elif evidence_level == EvidenceLevel.DEMONSTRATED:
-        reason = f"Skill demonstrated in resume; role requires it (importance: {role_relevance:.0%})"
+        reason = (
+            f"Skill demonstrated in resume; listed under {context_label} "
+            f"(importance: {role_relevance:.0%})"
+        )
     else:  # VERIFIED
-        reason = f"Skill verified in resume; role requires it (importance: {role_relevance:.0%})"
+        reason = (
+            f"Skill verified in resume; listed under {context_label} "
+            f"(importance: {role_relevance:.0%})"
+        )
 
     # Build uncertainty
     uncertainty_parts = []
     if extraction_confidence < 0.7:
         uncertainty_parts.append(f"JD extraction confidence low ({extraction_confidence:.0%})")
-    # Note: SkillEvidence doesn't have extraction_confidence field
     if evidence_level == EvidenceLevel.NONE:
         uncertainty_parts.append("Skill may exist but not captured in provided resume text")
 
@@ -101,6 +135,9 @@ def compute_skill_gap(
         uncertainty=uncertainty,
         jd_evidence=jd_skill.evidence_phrase or "",
         resume_evidence=resume_evidence_str,
+        resume_evidence_source=resume_evidence_source,
+        resume_extraction_confidence=resume_extraction_confidence,
+        requirement_type=jd_skill.requirement_type,
     )
 
 
@@ -109,18 +146,18 @@ def rank_gaps(gaps: list[SkillGap]) -> list[SkillGap]:
     return sorted(gaps, key=lambda g: g.priority, reverse=True)
 
 
-def calculate_readiness_score(gaps: list[SkillGap]) -> float:
+def calculate_readiness_score(gaps: list[SkillGap]) -> float | None:
     """
-    Calculate overall readiness score (0-1).
+    Calculate weighted evidence coverage (0-1).
 
-    Based on weighted coverage of required skills.
+    Returns None when there are no assessable requirements.
     """
     if not gaps:
-        return 1.0
+        return None
 
     total_weight = sum(g.role_relevance for g in gaps)
     if total_weight == 0:
-        return 1.0
+        return None
 
     covered_weight = sum(
         g.role_relevance * g.evidence_strength

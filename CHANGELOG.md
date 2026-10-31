@@ -50,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTML escaping for dynamic text rendered in custom UI components
 
 ### Changed
+- Keep related technologies and concepts as separate taxonomy entries rather than treating them as aliases
+- Preserve JD section context for skill requirements and include skills mentioned in responsibilities, experience, and education without counting benefits
+- Preserve resume evidence source and extraction confidence in assessment results and display them separately from evidence strength
 - Raised the supported Streamlit minimum to 1.49 for the current widget width API
 - Updated the dark theme accent to match the app's cyan UI tokens
 - Moved primary navigation above status/actions in the sidebar and widened the resume text editor
@@ -62,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added skill-specific learning resources and merged duplicate project recommendations
 
 ### Fixed
+- Prevented manually entered skills from being treated as verified evidence; normalize supported aliases and report unrecognized entries
+- Report insufficient data instead of 100% coverage when no assessable JD requirements are extracted
 - Improved primary button label contrast, including the disabled Analyze Skill Gaps state
 - Exposed the analysis `gaps` data consumed by the plan, interview, and dashboard tabs
 - Avoided logging resume filenames/content or displaying unexpected exception tracebacks

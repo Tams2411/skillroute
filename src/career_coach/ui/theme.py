@@ -512,6 +512,7 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     evidence_colors = {
         "verified": ("chip-verified", "verified"),
         "demonstrated": ("chip-matched", "demonstrated"),
+        "self_reported": ("chip-preferred", "self-reported"),
         "mentioned": ("chip-preferred", "mentioned"),
         "none": ("chip-gap", "missing"),
     }
@@ -532,6 +533,26 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     resume_evidence = " ".join(str(skill.get("resume_evidence", "")).split())
     reason = " ".join(str(skill.get("reason", "")).split())
     uncertainty = " ".join(str(skill.get("uncertainty", "")).split())
+    evidence_source = skill.get("resume_evidence_source", skill.get("evidence_source", ""))
+    evidence_source_label = "user self-report" if evidence_source == "manual" else evidence_source
+    metadata = []
+    if evidence_source_label:
+        metadata.append(f"Source: {_escape_html(evidence_source_label)}")
+    if evidence_source == "resume":
+        confidence_value = skill.get(
+            "resume_extraction_confidence",
+            skill.get("extraction_confidence", 0.0),
+        )
+        confidence = round(float(confidence_value) * 100)
+        metadata.append(f"Extraction confidence: {confidence}%")
+    if "evidence_strength" in skill:
+        strength = round(float(skill["evidence_strength"]) * 100)
+        metadata.append(f"Evidence strength: {strength}%")
+    requirement_type = skill.get("requirement_type")
+    if requirement_type:
+        metadata.append(
+            f"JD context: {_escape_html(str(requirement_type).replace('_', ' '))}"
+        )
 
     card_parts = [
         '<div class="skill-card animate-fade-in">',
@@ -550,7 +571,13 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     if resume_evidence:
         card_parts.append(
             f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">'
-            f'Resume: {_escape_html(resume_evidence[:150])}...</div>'
+            f'Evidence: {_escape_html(resume_evidence[:150])}...</div>'
+        )
+    if metadata:
+        card_parts.append(
+            '<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">'
+            + " · ".join(metadata)
+            + "</div>"
         )
     if uncertainty:
         card_parts.append(

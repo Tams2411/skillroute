@@ -33,6 +33,20 @@ def render_plan_tab():
             args=("Intake",),
         )
         return
+
+    if results.get("readiness_state") == "insufficient_data":
+        st.warning(
+            "Insufficient data: there are not enough recognizable job requirements to create a "
+            "targeted learning plan. "
+            "Review the job description in Intake."
+        )
+        st.button(
+            "Review Job Description",
+            key="goto_intake_plan_insufficient_data",
+            on_click=navigate_to,
+            args=("Intake",),
+        )
+        return
     
     gaps = [SkillGap.model_validate(gap) for gap in results.get("gaps", [])]
     

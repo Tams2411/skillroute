@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Evidence Level Weights (Guide §4.3)
     evidence_none: float = Field(default=0.0, ge=0.0, le=1.0)
     evidence_mentioned: float = Field(default=0.2, ge=0.0, le=1.0)
+    evidence_self_reported: float = Field(default=0.3, ge=0.0, le=1.0)
     evidence_demonstrated: float = Field(default=0.4, ge=0.0, le=1.0)
     evidence_verified: float = Field(default=0.9, ge=0.0, le=1.0)
 
@@ -39,6 +40,7 @@ class Settings(BaseSettings):
         return {
             EvidenceLevel.NONE: self.evidence_none,
             EvidenceLevel.MENTIONED: self.evidence_mentioned,
+            EvidenceLevel.SELF_REPORTED: self.evidence_self_reported,
             EvidenceLevel.DEMONSTRATED: self.evidence_demonstrated,
             EvidenceLevel.VERIFIED: self.evidence_verified,
         }

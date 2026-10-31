@@ -8,7 +8,7 @@ SkillRoute is an early local MVP. These constraints describe the current impleme
 - **Narrow taxonomy:** The curated catalog is strongest for data, software, and engineering roles; many other occupations have limited coverage.
 - **Heuristic parsing:** Resume evidence and job-description sections are inferred with text rules. Unusual layouts or wording can be missed or classified incorrectly.
 - **English-focused:** The taxonomy and extraction patterns are designed for English text.
-- **Heuristic scores:** Priority and readiness are decision-support signals, not measures of hiring probability or a validated assessment of competence.
+- **Heuristic scores:** Priority and weighted evidence coverage are decision-support signals, not measures of hiring probability or a validated assessment of competence. Manually entered skills are self-reported, not independently verified. Coverage is omitted when no assessable job requirements are extracted.
 - **Static interview content:** Questions come from templates. Deterministic interview scoring is self-reported. Optional Gemini feedback is advisory, may be inaccurate, and is not an independently validated assessment.
 - **Generic learning recommendations:** Plans and projects are template-based and may need adjustment for a user's schedule, budget, or available resources.
 

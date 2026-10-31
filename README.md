@@ -41,11 +41,16 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | **Plan** | Weekly learning tasks, curated resources, and project recommendations |
 | **Interview** | Rubric-based mock questions (technical + behavioral), self-evaluation scoring, and optional Gemini feedback |
 | **Tracker** | Application CRUD — company, role, URL, status, notes + response/interview/offer rates |
-| **Dashboard** | Readiness score, gap distribution, application stats, quick-action cards |
+| **Dashboard** | Weighted evidence coverage when requirements are available, application stats, quick-action cards |
 
 ### Core Design Principles
 
-- **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/DEMONSTRATED/VERIFIED), with a transparent priority score.
+- **Deterministic analysis** — Taxonomy-based matching and explicit evidence levels (NONE/MENTIONED/SELF_REPORTED/DEMONSTRATED/VERIFIED), with a transparent priority score.
+- **Honest manual skill claims** — Recognized aliases are normalized, user-reported skills are scored below demonstrated evidence, and unknown entries are reported rather than counted.
+- **Explainable evidence** — Assessment records retain evidence source and extraction confidence separately from evidence strength; confidence is not treated as proof of proficiency.
+- **Context-aware JD analysis** — Skills retain required, preferred, responsibility, experience, or education context; benefits are excluded and duplicate mentions are counted once at their strongest context.
+- **Distinct skill taxonomy** — Related products and concepts (for example, TensorFlow/Keras, Spark/PySpark, Git/GitHub, and testing/Pytest) are tracked separately instead of being treated as synonyms.
+- **Honest coverage reporting** — Weighted evidence coverage is shown only when recognizable job requirements are available; insufficient input is reported without a percentage.
 - **Deterministic by default** — Core resume/JD analysis and scoring run locally without an AI provider.
 - **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.
 - **Validated inputs** — Upload size/page limits and pasted-text limits are enforced.
@@ -111,11 +116,11 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 
 1. **Intake** → `ResumeParser` extracts text → `SkillExtractor` finds skills with evidence
 2. **JD Parse** → `JDParser` splits into sections → `SkillExtractor` maps to taxonomy
-3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps`, and a heuristic readiness score
+3. **Gap Analysis** → `SkillGapService` computes `matched_skills`, `missing_skills`, `gaps`, and weighted evidence coverage when requirements are available
 4. **Plan** → `plan_generator` creates weekly tasks and project recommendations from prioritized gaps
 5. **Interview** → `InterviewService` creates questions + deterministic rubrics; an explicit, consented request can send the answer/question/role/skill to Gemini for advisory feedback
 6. **Tracker** → `ApplicationTracker` persists applications to `data/applications.json`
-7. **Dashboard** → Aggregates readiness, stats, recent activity
+7. **Dashboard** → Aggregates evidence coverage, stats, and recent activity
 
 ---
 
@@ -135,6 +140,7 @@ Settings are optional; defaults are listed below. Copy `.env.example` to `.env` 
 | `MAX_JD_LENGTH` | `10000` | Maximum job-description characters |
 | `EVIDENCE_NONE` | `0.0` | Evidence weight for no evidence |
 | `EVIDENCE_MENTIONED` | `0.2` | Evidence weight for a mention |
+| `EVIDENCE_SELF_REPORTED` | `0.3` | Evidence weight for a user-reported skill not independently verified |
 | `EVIDENCE_DEMONSTRATED` | `0.4` | Evidence weight for demonstrated experience |
 | `EVIDENCE_VERIFIED` | `0.9` | Evidence weight for verified experience |
 

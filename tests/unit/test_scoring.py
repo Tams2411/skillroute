@@ -24,7 +24,10 @@ class TestEvidenceWeights:
     
     def test_demonstrated_returns_medium(self):
         assert evidence_level_to_weight(EvidenceLevel.DEMONSTRATED) == 0.4
-    
+
+    def test_self_reported_returns_configured_weight(self):
+        assert evidence_level_to_weight(EvidenceLevel.SELF_REPORTED) == 0.3
+
     def test_verified_returns_high(self):
         assert evidence_level_to_weight(EvidenceLevel.VERIFIED) == 0.9
 
@@ -155,6 +158,27 @@ class TestComputeSkillGap:
         assert gap.priority == pytest.approx(0.1)
         assert "verified in resume" in gap.reason.lower()
 
+    def test_self_reported_skill_is_not_described_as_verified(self):
+        jd_skill = JobSkillRequirement(
+            canonical_skill="kubernetes",
+            importance=1.0,
+            evidence_phrase="Kubernetes",
+            extraction_confidence=1.0,
+        )
+        resume_evidence = SkillEvidence(
+            canonical_skill="kubernetes",
+            evidence_level=EvidenceLevel.SELF_REPORTED,
+            source="manual",
+            supporting_evidence="Self-reported by user; not independently verified.",
+            user_confirmed=True,
+        )
+
+        gap = compute_skill_gap(jd_skill, resume_evidence)
+
+        assert gap.evidence_strength == 0.3
+        assert "self-reported" in gap.reason.lower()
+        assert "not independently verified" in gap.resume_evidence.lower()
+
 
 class TestRankGaps:
     """Test gap ranking."""
@@ -209,8 +233,19 @@ class TestReadinessScore:
         score = calculate_readiness_score(gaps)
         assert score == pytest.approx(0.9, abs=0.01)
     
-    def test_no_skills_100_percent(self):
-        assert calculate_readiness_score([]) == 1.0
+    def test_no_skills_returns_insufficient_data(self):
+        assert calculate_readiness_score([]) is None
+
+    def test_zero_total_requirement_weight_returns_insufficient_data(self):
+        from career_coach.domain.schemas import SkillGap
+
+        gap = SkillGap(
+            canonical_skill="python", role_relevance=0.0, evidence_strength=0.9,
+            extraction_confidence=1.0, priority=0.0, reason="test",
+            uncertainty="", jd_evidence="", resume_evidence=""
+        )
+
+        assert calculate_readiness_score([gap]) is None
     
     def test_all_missing_zero_percent(self):
         from career_coach.domain.schemas import SkillGap

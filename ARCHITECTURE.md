@@ -43,12 +43,14 @@ app.py (six sidebar-navigated pages)
 
 - `gaps`, `all_gaps`, `top_gaps`, and `actionable_gaps` as serialized skill-gap records
 - `matched_skills` and `missing_skills`
-- `readiness_score` (0–1) and `readiness_percentage`
+- `unrecognized_user_skills` for manually entered skills excluded from analysis
+- `readiness_state` (`available` or `insufficient_data`)
+- `readiness_score` (0–1) and `readiness_percentage`, both `null` when state is `insufficient_data`
 - extraction counts and metadata
 
 The Plan and Interview pages validate serialized gap records back into `SkillGap` models before passing them to their services.
 
-### Priority and readiness
+### Priority and evidence coverage
 
 ```text
 priority = role_relevance × (1 − evidence_strength) × extraction_confidence
@@ -60,10 +62,19 @@ JD importance informs role relevance. Evidence weights are configured as:
 |---|---:|
 | NONE | 0.0 |
 | MENTIONED | 0.2 |
+| SELF_REPORTED | 0.3 |
 | DEMONSTRATED | 0.4 |
 | VERIFIED | 0.9 |
 
-Readiness is a weighted evidence-coverage heuristic. Neither score predicts hiring outcomes or establishes proficiency.
+Manually entered skills are normalized through the taxonomy. Recognized claims use the `SELF_REPORTED` level unless resume evidence is stronger; unknown entries are excluded and returned for UI feedback. A self-report is not represented as independently verified evidence.
+
+Weighted evidence coverage is a heuristic summary of evidence against extracted requirements. If no requirements with positive total importance are extracted, the state is `insufficient_data` and no score or percentage is returned. The UI shows an explanatory message instead of presenting a perfect score or claiming the user is prepared. This metric does not predict hiring outcomes or establish proficiency.
+
+Resume evidence records preserve their source and extraction confidence separately from evidence strength. Extraction confidence describes the system's certainty that it found a skill mention; it does not verify the user's proficiency and does not change the evidence weight or readiness calculation.
+
+JD skill requirements retain their originating context (`required`, `preferred`, `skills`, `responsibility`, `experience`, or `education`). Context-specific importance weights affect ranking; benefits remain excluded, and duplicate mentions retain the strongest applicable requirement context.
+
+The taxonomy maps only true synonyms to one canonical skill. Related tools and broader concepts, including TensorFlow/Keras, Spark/PySpark, Git/GitHub, MongoDB/NoSQL, and testing/Pytest, remain separate entries so a match for one is not presented as evidence for another.
 
 ## Persistence and Data Flow
 

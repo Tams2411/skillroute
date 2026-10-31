@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 from career_coach.domain.schemas import (
@@ -14,6 +15,58 @@ from career_coach.services.gemini_interview_service import (
     GeminiFeedbackError,
     GeminiInterviewFeedback,
 )
+
+
+@pytest.mark.parametrize("active_tab", ["Assessment", "Plan", "Interview", "Dashboard"])
+def test_insufficient_requirements_are_not_presented_as_readiness(active_tab):
+    app_path = Path(__file__).parents[2] / "app.py"
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["analysis_results"] = {
+        "readiness_state": "insufficient_data",
+        "readiness_score": None,
+        "readiness_percentage": None,
+        "total_jd_skills": 0,
+        "gaps": [],
+        "all_gaps": [],
+        "top_gaps": [],
+        "actionable_gaps": [],
+        "matched_skills": [],
+        "missing_skills": [],
+    }
+    app.session_state["active_tab"] = active_tab
+
+    app.run()
+
+    assert not app.exception
+    messages = "\n".join(element.value for element in app.markdown)
+    messages += "\n" + "\n".join(element.value for element in app.warning)
+    assert "Insufficient data" in messages
+    assert "well-prepared" not in messages
+    assert "100%" not in messages
+
+
+def test_unrecognized_manual_skills_are_reported_in_assessment():
+    app_path = Path(__file__).parents[2] / "app.py"
+    app = AppTest.from_file(str(app_path), default_timeout=15)
+    app.session_state["analysis_results"] = {
+        "readiness_state": "available",
+        "readiness_score": 0.2,
+        "readiness_percentage": 20,
+        "total_jd_skills": 1,
+        "gaps": [],
+        "all_gaps": [],
+        "top_gaps": [],
+        "actionable_gaps": [],
+        "matched_skills": [],
+        "missing_skills": [],
+        "unrecognized_user_skills": ["unknown platform"],
+    }
+    app.session_state["active_tab"] = "Assessment"
+
+    app.run()
+
+    assert not app.exception
+    assert any("unknown platform" in element.value for element in app.warning)
 
 
 def test_sample_workflow_generates_assessment_plan_and_interview():

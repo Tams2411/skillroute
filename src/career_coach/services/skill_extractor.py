@@ -11,7 +11,7 @@ from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
 class SkillMatch:
     """A skill match with evidence and confidence."""
     canonical_skill: str
-    evidence_level: str  # "none", "mentioned", "demonstrated", "verified"
+    evidence_level: str  # "none", "mentioned", "self_reported", "demonstrated", "verified"
     source: str  # "resume", "jd", "manual"
     supporting_evidence: str
     user_confirmed: bool = False
@@ -209,6 +209,6 @@ class SkillExtractor:
         for match in matches:
             if match.canonical_skill == canonical_skill:
                 match.user_confirmed = confirmed
-                if confirmed:
-                    match.evidence_level = "verified"
+                if confirmed and match.evidence_level in ("none", "mentioned"):
+                    match.evidence_level = "self_reported"
         return matches
