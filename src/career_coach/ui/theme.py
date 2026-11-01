@@ -69,10 +69,9 @@ def apply_theme() -> None:
         max-width: 1200px;
     }
     
-    /* Hide Streamlit branding */
+    /* Hide branding without hiding the sidebar toggle in Streamlit's header. */
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
-    header { visibility: hidden; }
     
     /* ========================================
        Typography
