@@ -9,11 +9,14 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from career_coach.domain.schemas import InterviewRubricScore, InterviewSession
 from career_coach.services.interview_service import get_rubric_for_question
 
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 GEMINI_API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 )
 REQUEST_TIMEOUT_SECONDS = 30
+# Reasoning models spend most of their output budget on hidden thinking tokens,
+# so a low cap truncates the JSON response mid-string and breaks parsing.
+MAX_OUTPUT_TOKENS = 6000
 MAX_RESPONSE_BYTES = 64 * 1024
 MAX_API_KEY_LENGTH = 256
 MAX_ANSWER_LENGTH = 5000
@@ -163,7 +166,7 @@ def generate_gemini_interview_feedback(
         ],
         "generationConfig": {
             "temperature": 0.2,
-            "maxOutputTokens": 1200,
+            "maxOutputTokens": MAX_OUTPUT_TOKENS,
             "responseFormat": {
                 "text": {
                     "mimeType": "APPLICATION_JSON",

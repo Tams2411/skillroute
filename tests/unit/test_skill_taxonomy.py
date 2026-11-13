@@ -1,6 +1,6 @@
 """Unit tests for skill taxonomy."""
 
-from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy, DEFAULT_TAXONOMY
+from career_coach.domain.skill_taxonomy import DEFAULT_TAXONOMY, SkillTaxonomy, load_taxonomy
 
 
 class TestSkillTaxonomy:

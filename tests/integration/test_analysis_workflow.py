@@ -62,14 +62,16 @@ def test_analysis_preserves_resume_source_and_extraction_confidence():
 
 
 def test_legacy_gap_records_default_new_provenance_fields():
-    legacy_gap = SkillGap.model_validate({
-        "canonical_skill": "python",
-        "role_relevance": 0.8,
-        "evidence_strength": 0.0,
-        "extraction_confidence": 0.9,
-        "priority": 0.72,
-        "reason": "Required for the role",
-    })
+    legacy_gap = SkillGap.model_validate(
+        {
+            "canonical_skill": "python",
+            "role_relevance": 0.8,
+            "evidence_strength": 0.0,
+            "extraction_confidence": 0.9,
+            "priority": 0.72,
+            "reason": "Required for the role",
+        }
+    )
 
     assert legacy_gap.resume_evidence_source == ""
     assert legacy_gap.resume_extraction_confidence == 0.0
@@ -138,8 +140,10 @@ def test_unknown_user_skill_is_not_added_as_evidence():
         user_confirmed_skills=["unrecognized platform"],
     )
 
-    python = next(
-        skill for skill in results["matched_skills"] if skill["canonical_skill"] == "python"
-    ) if results["matched_skills"] else None
+    python = (
+        next(skill for skill in results["matched_skills"] if skill["canonical_skill"] == "python")
+        if results["matched_skills"]
+        else None
+    )
     assert python is None
     assert results["unrecognized_user_skills"] == ["unrecognized platform"]

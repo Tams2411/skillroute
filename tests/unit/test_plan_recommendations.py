@@ -34,3 +34,12 @@ def test_related_gaps_do_not_duplicate_the_same_project_recommendation():
 
     assert len(projects) == 1
     assert {"sql", "postgresql"} <= set(projects[0].targeted_skills)
+
+
+def test_data_visualization_skills_receive_category_resources():
+    """Skills whose category was missing from LEARNING_RESOURCES had empty URLs."""
+    for skill in ("matplotlib", "seaborn", "plotly", "tableau", "power bi"):
+        resources = get_resources_for_skill(skill)
+
+        assert resources, skill
+        assert all(resource["url"] for resource in resources), skill

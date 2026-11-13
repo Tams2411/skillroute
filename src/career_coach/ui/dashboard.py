@@ -2,25 +2,34 @@
 
 import streamlit as st
 
+from career_coach.domain.schemas import EvidenceLevel
 from career_coach.services.tracker_service import get_tracker
 from career_coach.ui.navigation import navigate_to
-from career_coach.ui.theme import render_chip, render_empty_state, render_metric, render_section_header
+from career_coach.ui.theme import (
+    render_chip,
+    render_empty_state,
+    render_metric,
+    render_section_header,
+)
+
+# Evidence levels that count as "present but not yet demonstrated".
+_WEAK_EVIDENCE = {EvidenceLevel.NONE, EvidenceLevel.MENTIONED, EvidenceLevel.SELF_REPORTED}
 
 
 def render_dashboard_tab():
     """Render the Dashboard tab."""
     results = st.session_state.get("analysis_results")
     tracker = get_tracker()
-    
+
     # Overall stats
     apps = tracker.list_all()
     stats = tracker.get_stats()
-    
+
     st.markdown(
         render_section_header("📊 Dashboard", "Your career pivot overview"),
         unsafe_allow_html=True,
     )
-    
+
     # Top metrics
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -46,13 +55,13 @@ def render_dashboard_tab():
             render_metric("Weighted Evidence Coverage", coverage),
             unsafe_allow_html=True,
         )
-    
+
     # Status chart
-    if stats['by_status']:
+    if stats["by_status"]:
         st.markdown("### Application Status")
-        status_data = {k.replace('_', ' ').title(): v for k, v in stats['by_status'].items()}
+        status_data = {k.replace("_", " ").title(): v for k, v in stats["by_status"].items()}
         st.bar_chart(status_data, width="stretch")
-    
+
     # Readiness breakdown
     if results and results.get("readiness_state") == "insufficient_data":
         st.warning(
@@ -68,48 +77,55 @@ def render_dashboard_tab():
             ),
             unsafe_allow_html=True,
         )
-        
+
+        matched_skills = results.get("matched_skills", [])
+        partial_count = sum(
+            1 for skill in matched_skills if skill.get("evidence_level") in _WEAK_EVIDENCE
+        )
         col1, col2, col3 = st.columns(3)
         with col1:
-            matched = len(results.get("matched_skills", []))
-            st.markdown(render_metric("Matched Skills", matched), unsafe_allow_html=True)
+            st.markdown(
+                render_metric("Matched Skills", len(matched_skills) - partial_count),
+                unsafe_allow_html=True,
+            )
         with col2:
             missing = len(results.get("missing_skills", []))
             st.markdown(render_metric("Missing Skills", missing), unsafe_allow_html=True)
         with col3:
-            partial = len(results.get("partial_skills", []))
-            st.markdown(render_metric("Partial Matches", partial), unsafe_allow_html=True)
-        
+            st.markdown(render_metric("Partial Matches", partial_count), unsafe_allow_html=True)
+
         # Top gaps
         gaps = results.get("gaps", [])
         if gaps:
             st.markdown("### Top Priority Gaps")
-            for i, gap in enumerate(gaps[:5]):
+            for gap in gaps[:5]:
                 col1, col2, col3 = st.columns([3, 1, 1])
                 with col1:
                     st.markdown(render_chip(gap["canonical_skill"], "teal"), unsafe_allow_html=True)
-                    st.caption(gap.get('reason', ''))
+                    st.caption(gap.get("reason", ""))
                 with col2:
-                    priority = gap.get('priority', 0)
-                    color = "error" if priority > 0.7 else "warning" if priority > 0.4 else "success"
+                    priority = gap.get("priority", 0)
+                    color = (
+                        "error" if priority > 0.7 else "warning" if priority > 0.4 else "success"
+                    )
                     st.markdown(
                         render_chip(f"Priority: {priority:.0%}", color),
                         unsafe_allow_html=True,
                     )
                 with col3:
-                    evidence = gap.get('evidence_strength', 0)
+                    evidence = gap.get("evidence_strength", 0)
                     st.markdown(
                         render_chip(f"Evidence: {evidence:.0%}", "purple"),
                         unsafe_allow_html=True,
                     )
-    
+
     # Recent activity
     st.markdown("---")
     st.markdown(
         render_section_header("📝 Recent Applications", "Latest activity"),
         unsafe_allow_html=True,
     )
-    
+
     recent_apps = apps[:5]
     if recent_apps:
         for app in recent_apps:
@@ -125,16 +141,19 @@ def render_dashboard_tab():
             with col3:
                 st.caption(f"Updated {app.updated_at.strftime('%Y-%m-%d')}")
     else:
-        st.markdown(render_empty_state(
-            title="No Applications Yet",
-            description="Add applications in the Tracker tab to see activity here.",
-            icon="file-text",
-        ), unsafe_allow_html=True)
-    
+        st.markdown(
+            render_empty_state(
+                title="No Applications Yet",
+                description="Add applications in the Tracker tab to see activity here.",
+                icon="file-text",
+            ),
+            unsafe_allow_html=True,
+        )
+
     # Quick actions
     st.markdown("---")
     st.markdown(render_section_header("⚡ Quick Actions"), unsafe_allow_html=True)
-    
+
     col1, col2, col3 = st.columns(3)
     with col1:
         st.button(

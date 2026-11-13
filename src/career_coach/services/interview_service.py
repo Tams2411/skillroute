@@ -1,13 +1,12 @@
 """Interview preparation service - questions and rubric evaluation."""
 
 import random
-from datetime import datetime
 from typing import Literal
 from uuid import uuid4
 
 from career_coach.domain.schemas import InterviewCriterion, InterviewSession, SkillGap
 from career_coach.domain.scoring import get_top_gaps
-
+from career_coach.domain.timeutils import utcnow
 
 # Default behavioral questions
 DEFAULT_BEHAVIORAL = [
@@ -110,25 +109,17 @@ def _get_typed_questions_for_skill(
         remaining = count - len(selected)
 
     if remaining > 0 and include_behavioral:
-        available_behavioral = [q for q in behavioral_questions if (q, "behavioral") not in selected]
+        available_behavioral = [
+            q for q in behavioral_questions if (q, "behavioral") not in selected
+        ]
         selected.extend(
             (question, "behavioral")
-            for question in random.sample(available_behavioral, min(remaining, len(available_behavioral)))
+            for question in random.sample(
+                available_behavioral, min(remaining, len(available_behavioral))
+            )
         )
 
     return selected[:count]
-
-
-def get_questions_for_skill(
-    skill: str,
-    count: int = 3,
-    include_behavioral: bool = True,
-) -> list[str]:
-    """Get interview question text for a specific skill."""
-    return [
-        question
-        for question, _ in _get_typed_questions_for_skill(skill, count, include_behavioral)
-    ]
 
 
 def generate_interview_session(
@@ -138,21 +129,21 @@ def generate_interview_session(
     questions_per_skill: int = 2,
 ) -> list[InterviewSession]:
     """Generate mock interview sessions targeting top skill gaps.
-    
+
     Returns list of InterviewSession objects (one per question).
     """
     actionable = [g for g in gaps if g.priority >= 0.15]
     top_gaps = get_top_gaps(actionable, n=max_skills)
-    
+
     sessions = []
-    
+
     for gap in top_gaps:
         questions = _get_typed_questions_for_skill(
             gap.canonical_skill,
             count=questions_per_skill,
             include_behavioral=True,
         )
-        
+
         for q_text, question_type in questions:
             session = InterviewSession(
                 id=uuid4(),
@@ -164,11 +155,11 @@ def generate_interview_session(
                 scores=[],
                 overall_feedback="",
                 practice_task="",
-                created_at=datetime.utcnow(),
+                created_at=utcnow(),
                 completed=False,
             )
             sessions.append(session)
-    
+
     # Add general behavioral questions
     for q_text in random.sample(DEFAULT_BEHAVIORAL, 2):
         session = InterviewSession(
@@ -181,11 +172,11 @@ def generate_interview_session(
             scores=[],
             overall_feedback="",
             practice_task="",
-            created_at=datetime.utcnow(),
+            created_at=utcnow(),
             completed=False,
         )
         sessions.append(session)
-    
+
     return sessions
 
 
@@ -196,7 +187,7 @@ def get_rubric_for_question(
 ) -> dict:
     """Get the evaluation rubric for a question."""
     is_technical = question_type != "behavioral" if question_type else skill != "general"
-    
+
     if is_technical:
         return {
             InterviewCriterion.TECHNICAL_CORRECTNESS: {
@@ -251,12 +242,14 @@ def evaluate_answer(
         session.category,
         session.question_type,
     )
-    
+
     return {
         "session_id": str(session.id),
         "question": session.question,
         "category": session.category,
-        "scores": {criterion.value: 3 for criterion in rubric.keys()},  # Default mid-score for self-eval
+        "scores": {
+            criterion.value: 3 for criterion in rubric.keys()
+        },  # Default mid-score for self-eval
         "weighted_score": 3.0,
         "answer_word_count": len(answer.split()),
         "feedback": (
@@ -275,29 +268,33 @@ def calculate_session_score(sessions: list[InterviewSession]) -> dict:
         criterion: [] for criterion in InterviewCriterion
     }
     completed = 0
-    
+
     for session in sessions:
         if not session.completed or not session.scores:
             continue
         completed += 1
         for score_obj in session.scores:
             criterion = score_obj.criterion
-            weight = get_rubric_for_question(
-                session.question,
-                session.category,
-                session.question_type,
-            ).get(criterion, {}).get("weight", 0)
+            weight = (
+                get_rubric_for_question(
+                    session.question,
+                    session.category,
+                    session.question_type,
+                )
+                .get(criterion, {})
+                .get("weight", 0)
+            )
             total_weighted += score_obj.score * weight
             total_weight += weight
             criterion_scores[criterion].append(score_obj.score)
-    
+
     overall = total_weighted / total_weight if total_weight > 0 else 0
-    
+
     avg_by_criterion = {}
     for criterion, scores in criterion_scores.items():
         if scores:
             avg_by_criterion[criterion.value] = round(sum(scores) / len(scores), 2)
-    
+
     return {
         "overall_score": round(overall, 2),
         "max_score": 5.0,

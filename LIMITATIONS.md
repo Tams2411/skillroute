@@ -15,7 +15,7 @@ SkillRoute is an early local MVP. These constraints describe the current impleme
 ## Files, Storage, and Privacy
 
 - **No authentication or access control:** Anyone who can reach the app can use it. Run locally on a trusted machine; the hosted version is an unauthenticated demo, not a private workspace.
-- **Shared plaintext tracker:** Application records, notes, and saved job-description text are stored in plaintext JSON at `data/applications.json`. Users of the same running app instance share this file. It is not safe for concurrent writers and has no built-in export/import screen.
+- **Shared plaintext tracker:** Application records, notes, and saved job-description text are stored in plaintext JSON at `data/applications.json`. Users of the same running app instance share this file. Writes are atomic and a corrupt store is quarantined, but it is not safe for concurrent writers and has no built-in export/import screen.
 - **Hosted storage is ephemeral:** Streamlit Community Cloud may discard local files when the app restarts or rebuilds. Do not rely on it for durable tracker data.
 - **User-supplied AI credentials:** Gemini keys are session-only from the app's perspective, but a hosted app operator can access server memory. The UI provides a clear-key action; keys are not stored in files or application logs.
 - **Transient analysis state:** Resume/JD analysis is kept in Streamlit session state while the session is active; it is not saved as a persistent profile.
@@ -32,7 +32,7 @@ SkillRoute is an early local MVP. These constraints describe the current impleme
 
 ## CI, Deployment, and Accessibility
 
-- **CI configured, deployment not provisioned:** GitHub Actions checks Python 3.11/3.12, focused lint, mypy, tests, and dependency vulnerabilities. The repository has setup instructions for Streamlit Community Cloud, but no live Cloud app has been created or validated here.
+- **CI configured, deployment not provisioned:** GitHub Actions checks Python 3.11/3.12, configured lint and format, mypy, tests against a 75% coverage floor, and dependency vulnerabilities. The repository has setup instructions for Streamlit Community Cloud, but no live Cloud app has been created or validated here.
 - **Demo hosting only:** After initial Cloud setup, pushes to the selected branch trigger rebuilds. There is no separate deployment workflow, managed persistence, authentication, rate limiting, or production monitoring.
 - **Reproducible lockfile:** `uv.lock` pins the resolved dependency graph; update it whenever project dependencies change.
 - **No load/performance benchmarks:** The app is designed for local, single-user use.
@@ -47,4 +47,4 @@ SkillRoute is an early local MVP. These constraints describe the current impleme
 - [ ] Confirm uploads over the configured size/page limits are rejected.
 - [ ] Prepare screenshots or a backup recording.
 
-The automated tests cover deterministic analysis, plan/interview generation, sidebar navigation and state resets, tracker persistence, input bounds, prompt-like text, malformed PDFs, and HTML escaping. They do not replace a full live demo rehearsal or a formal accessibility audit.
+The automated tests cover deterministic analysis, plan/interview generation, sidebar navigation and state resets, tracker persistence and storage resilience, input bounds, prompt-like text, malformed PDFs, and HTML escaping. They do not replace a full live demo rehearsal or a formal accessibility audit.

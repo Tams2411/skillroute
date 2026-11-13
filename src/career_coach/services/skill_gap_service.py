@@ -5,7 +5,6 @@ from career_coach.domain.schemas import (
     EvidenceLevel,
     JobSkillRequirement,
     SkillEvidence,
-    SkillGap,
     SkillRequirementType,
 )
 from career_coach.domain.scoring import (
@@ -107,16 +106,16 @@ class SkillGapService:
                     break
 
             if not found:
-                resume_skills.append(SkillMatch(
-                    canonical_skill=skill,
-                    evidence_level=EvidenceLevel.SELF_REPORTED.value,
-                    source="manual",
-                    supporting_evidence=(
-                        "Self-reported by user; not independently verified."
-                    ),
-                    user_confirmed=True,
-                    extraction_confidence=1.0,
-                ))
+                resume_skills.append(
+                    SkillMatch(
+                        canonical_skill=skill,
+                        evidence_level=EvidenceLevel.SELF_REPORTED.value,
+                        source="manual",
+                        supporting_evidence=("Self-reported by user; not independently verified."),
+                        user_confirmed=True,
+                        extraction_confidence=1.0,
+                    )
+                )
 
         # 5. Build resume evidence map
         resume_evidence_map = {
@@ -139,13 +138,15 @@ class SkillGapService:
             jd_result["contextual_skills"],
         ):
             for rs in skill_list:
-                jd_requirements.append(JobSkillRequirement(
-                    canonical_skill=rs["canonical_skill"],
-                    importance=rs["importance"],
-                    evidence_phrase=rs["evidence_phrase"],
-                    extraction_confidence=rs["extraction_confidence"],
-                    requirement_type=SkillRequirementType(rs["requirement_type"]),
-                ))
+                jd_requirements.append(
+                    JobSkillRequirement(
+                        canonical_skill=rs["canonical_skill"],
+                        importance=rs["importance"],
+                        evidence_phrase=rs["evidence_phrase"],
+                        extraction_confidence=rs["extraction_confidence"],
+                        requirement_type=SkillRequirementType(rs["requirement_type"]),
+                    )
+                )
 
         # 7. Compute gaps
         gaps = []
@@ -167,26 +168,29 @@ class SkillGapService:
         matched_skills = []
         for jd_req in jd_requirements:
             if jd_req.canonical_skill in resume_evidence_map:
-                matched_skills.append({
-                    "canonical_skill": jd_req.canonical_skill,
-                    "role_relevance": jd_req.importance,
-                    "evidence_level": resume_evidence_map[jd_req.canonical_skill].evidence_level.value,
-                    "evidence_strength": calculate_evidence_strength(
-                        resume_evidence_map[jd_req.canonical_skill].evidence_level
-                    ),
-                    "evidence_source": resume_evidence_map[jd_req.canonical_skill].source,
-                    "extraction_confidence": (
-                        resume_evidence_map[jd_req.canonical_skill].extraction_confidence
-                    ),
-                    "requirement_type": jd_req.requirement_type.value,
-                    "user_confirmed": resume_evidence_map[jd_req.canonical_skill].user_confirmed,
-                })
+                matched_skills.append(
+                    {
+                        "canonical_skill": jd_req.canonical_skill,
+                        "role_relevance": jd_req.importance,
+                        "evidence_level": resume_evidence_map[
+                            jd_req.canonical_skill
+                        ].evidence_level.value,
+                        "evidence_strength": calculate_evidence_strength(
+                            resume_evidence_map[jd_req.canonical_skill].evidence_level
+                        ),
+                        "evidence_source": resume_evidence_map[jd_req.canonical_skill].source,
+                        "extraction_confidence": (
+                            resume_evidence_map[jd_req.canonical_skill].extraction_confidence
+                        ),
+                        "requirement_type": jd_req.requirement_type.value,
+                        "user_confirmed": resume_evidence_map[
+                            jd_req.canonical_skill
+                        ].user_confirmed,
+                    }
+                )
 
         # 11. Missing skills (in JD but not in resume at all)
-        missing_skills = [
-            g for g in ranked_gaps
-            if g.canonical_skill not in resume_evidence_map
-        ]
+        missing_skills = [g for g in ranked_gaps if g.canonical_skill not in resume_evidence_map]
 
         return {
             "readiness_state": readiness_state,
@@ -213,41 +217,3 @@ class SkillGapService:
                 },
             },
         }
-
-    def get_gap_details(self, gap: SkillGap) -> dict:
-        """Get detailed explanation for a specific gap."""
-        return {
-            "skill": gap.canonical_skill,
-            "priority": gap.priority,
-            "priority_label": self._priority_label(gap.priority),
-            "role_relevance": gap.role_relevance,
-            "evidence_strength": gap.evidence_strength,
-            "reason": gap.reason,
-            "uncertainty": gap.uncertainty,
-            "jd_evidence": gap.jd_evidence,
-            "resume_evidence": gap.resume_evidence,
-            "suggested_action": self._suggest_action(gap),
-        }
-
-    def _priority_label(self, priority: float) -> str:
-        """Convert priority score to label."""
-        if priority >= 0.6:
-            return "Critical"
-        elif priority >= 0.4:
-            return "High"
-        elif priority >= 0.25:
-            return "Medium"
-        elif priority >= 0.1:
-            return "Low"
-        return "Minimal"
-
-    def _suggest_action(self, gap: SkillGap) -> str:
-        """Suggest learning action based on gap characteristics."""
-        if gap.evidence_strength == 0:
-            return f"Learn {gap.canonical_skill} from fundamentals; build a portfolio project demonstrating it"
-        elif gap.evidence_strength <= 0.2:
-            return f"Deepen {gap.canonical_skill} knowledge; convert mentions to demonstrated evidence via project"
-        elif gap.evidence_strength <= 0.4:
-            return f"Strengthen {gap.canonical_skill} portfolio evidence; document specific achievements"
-        else:
-            return f"Verify {gap.canonical_skill} proficiency with certification or advanced project"

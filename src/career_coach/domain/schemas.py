@@ -1,14 +1,18 @@
 """Domain schemas and data contracts."""
 
-from enum import Enum
-from pydantic import BaseModel, Field, ConfigDict
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Literal
-from datetime import datetime
 from uuid import UUID, uuid4
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-class EvidenceLevel(str, Enum):
+from career_coach.domain.timeutils import utcnow
+
+
+class EvidenceLevel(StrEnum):
     """Strength of evidence for a skill."""
+
     NONE = "none"
     MENTIONED = "mentioned"
     SELF_REPORTED = "self_reported"
@@ -16,8 +20,9 @@ class EvidenceLevel(str, Enum):
     VERIFIED = "verified"
 
 
-class SkillRequirementType(str, Enum):
+class SkillRequirementType(StrEnum):
     """Context where a job description mentions a skill."""
+
     REQUIRED = "required"
     PREFERRED = "preferred"
     SKILLS = "skills"
@@ -26,8 +31,9 @@ class SkillRequirementType(str, Enum):
     EDUCATION = "education"
 
 
-class ApplicationStatus(str, Enum):
+class ApplicationStatus(StrEnum):
     """Application status values."""
+
     APPLIED = "applied"
     ASSESSMENT_RECEIVED = "assessment_received"
     INTERVIEW_SCHEDULED = "interview_scheduled"
@@ -38,8 +44,9 @@ class ApplicationStatus(str, Enum):
     NO_RESPONSE = "no_response"
 
 
-class InterviewCriterion(str, Enum):
+class InterviewCriterion(StrEnum):
     """Interview rubric criteria."""
+
     TECHNICAL_CORRECTNESS = "technical_correctness"
     REASONING_TRADEOFFS = "reasoning_tradeoffs"
     SPECIFICITY_EVIDENCE = "specificity_evidence"
@@ -49,6 +56,7 @@ class InterviewCriterion(str, Enum):
 
 class SkillEvidence(BaseModel):
     """Evidence for a skill from resume/profile."""
+
     model_config = ConfigDict(extra="forbid")
 
     canonical_skill: str = Field(min_length=1, max_length=80)
@@ -61,6 +69,7 @@ class SkillEvidence(BaseModel):
 
 class JobSkillRequirement(BaseModel):
     """A skill required by a job description."""
+
     model_config = ConfigDict(extra="forbid")
 
     canonical_skill: str = Field(min_length=1, max_length=80)
@@ -72,6 +81,7 @@ class JobSkillRequirement(BaseModel):
 
 class SkillGap(BaseModel):
     """A prioritized skill gap with rationale."""
+
     model_config = ConfigDict(extra="forbid")
 
     canonical_skill: str = Field(min_length=1, max_length=80)
@@ -90,6 +100,7 @@ class SkillGap(BaseModel):
 
 class LearningTask(BaseModel):
     """A single learning task in the weekly plan."""
+
     model_config = ConfigDict(extra="forbid")
 
     week: int = Field(ge=1)
@@ -106,6 +117,7 @@ class LearningTask(BaseModel):
 
 class ProjectRecommendation(BaseModel):
     """A portfolio project recommendation."""
+
     model_config = ConfigDict(extra="forbid")
 
     title: str = Field(min_length=1, max_length=120)
@@ -122,6 +134,7 @@ class ProjectRecommendation(BaseModel):
 
 class InterviewRubricScore(BaseModel):
     """Score for a single interview criterion."""
+
     model_config = ConfigDict(extra="forbid")
 
     criterion: InterviewCriterion
@@ -132,6 +145,7 @@ class InterviewRubricScore(BaseModel):
 
 class InterviewSession(BaseModel):
     """A complete mock interview session."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID = Field(default_factory=uuid4)
@@ -143,12 +157,13 @@ class InterviewSession(BaseModel):
     scores: list[InterviewRubricScore] = Field(default_factory=list)
     overall_feedback: str = Field(default="", max_length=2000)
     practice_task: str = Field(default="", max_length=500)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     completed: bool = False
 
 
 class Application(BaseModel):
     """A job application record."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID = Field(default_factory=uuid4)
@@ -156,19 +171,33 @@ class Application(BaseModel):
     role: str = Field(min_length=1, max_length=100)
     jd_text: str = Field(default="", max_length=10000)
     status: ApplicationStatus = ApplicationStatus.APPLIED
-    applied_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    applied_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     notes: str = Field(default="", max_length=2000)
+
+    @field_validator("applied_at", "updated_at")
+    @classmethod
+    def _utc_timestamps(cls, value):
+        """Keep every timestamp timezone-aware so records can be sorted.
+
+        The tracker form passes a naive ``datetime`` (``datetime.combine``)
+        and older stores hold naive ISO strings; without this the store mixes
+        naive and aware values and ``list_all()`` raises a TypeError.
+        """
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class ApplicationEvent(BaseModel):
     """An append-only event for application status changes."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID = Field(default_factory=uuid4)
     application_id: UUID
     event_type: ApplicationStatus
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utcnow)
     note: str = Field(default="", max_length=1000)
     source: str = Field(default="user_entered", max_length=30)
     explicit_feedback: str = Field(default="", max_length=2000)
@@ -176,6 +205,7 @@ class ApplicationEvent(BaseModel):
 
 class FeedbackHypothesis(BaseModel):
     """A hypothesis generated from outcome patterns."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID = Field(default_factory=uuid4)
@@ -183,11 +213,12 @@ class FeedbackHypothesis(BaseModel):
     sample_size: int = Field(ge=1)
     uncertainty: str = Field(min_length=1, max_length=500)
     suggested_experiment: str = Field(min_length=1, max_length=500)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class Profile(BaseModel):
     """User profile with target role and preferences."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID = Field(default_factory=uuid4)
@@ -196,12 +227,13 @@ class Profile(BaseModel):
     timeline_weeks: int = Field(default=12, ge=1, le=52)
     available_hours_per_week: int = Field(default=10, ge=1, le=40)
     preferences: dict = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class JobTarget(BaseModel):
     """Target job with JD text."""
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID = Field(default_factory=uuid4)
@@ -209,4 +241,4 @@ class JobTarget(BaseModel):
     role: str = Field(min_length=1, max_length=100)
     jd_text: str = Field(min_length=1, max_length=10000)
     source: str = Field(default="manual", max_length=30)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)

@@ -17,7 +17,8 @@ uv run pre-commit install
 
 # 4. Verify setup with the CI checks
 uv run pytest -q
-uv run ruff check --select E4,E7,E9,F src/ tests/
+uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
 uv run mypy src/
 uv run pip-audit --progress-spinner off --skip-editable
 ```
@@ -63,15 +64,15 @@ refactor: extract skill matching to separate function
 2. **Make changes** with tests:
    - Add tests for new functionality
    - Ensure all existing tests pass
-   - Run the focused Ruff check, `mypy src/`, and `pip-audit` before pushing
+   - Run the Ruff check and format check, `mypy src/`, and `pip-audit` before pushing
 
-3. **Push and open PR** against `AshayK003/skillroute:main`:
+3. **Push and open PR** against `Tams2411/skillroute:main`:
    - Fill the PR template
    - Link related issues
    - Screenshots for UI changes
 
 4. **Review process**:
-   - CI must pass (Python 3.11/3.12 tests, lint, type check, dependency audit)
+   - CI must pass (Python 3.11/3.12 tests, lint, format check, type check, coverage floor, dependency audit)
    - At least one approval required
    - Maintainer merges (squash preferred)
 
@@ -150,7 +151,7 @@ Add or update taxonomy/extraction tests, then run `uv run pytest tests/unit/test
 
 ## CI and Dependency Updates
 
-The GitHub Actions workflow is `.github/workflows/ci.yml`. It tests Python 3.11 and 3.12, runs lint/type checks and tests, then audits dependencies. When changing dependencies, update `pyproject.toml` and regenerate the lockfile with `uv lock --python 3.12`; verify with `uv lock --check` and `uv sync --extra dev --locked`.
+The GitHub Actions workflow is `.github/workflows/ci.yml`. It tests Python 3.11 and 3.12, runs the configured lint and format checks, type checks, and tests with a coverage floor, then audits dependencies. When changing dependencies, update `pyproject.toml` and regenerate the lockfile with `uv lock --python 3.12`; verify with `uv lock --check` and `uv sync --extra dev --locked`.
 
 ## Reporting Issues
 

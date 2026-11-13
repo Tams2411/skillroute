@@ -7,25 +7,28 @@ from career_coach.services.plan_generator import (
     generate_learning_plan,
     generate_project_recommendations,
 )
+from career_coach.ui.navigation import navigate_to
 from career_coach.ui.theme import (
     render_alert,
     render_chip,
     render_empty_state,
     render_section_header,
 )
-from career_coach.ui.navigation import navigate_to
 
 
 def render_plan_tab():
     """Render the Learning Plan tab."""
     results = st.session_state.get("analysis_results")
-    
+
     if not results:
-        st.markdown(render_empty_state(
-            title="No Analysis Results",
-            description="Complete the Intake tab first to generate your personalized learning plan.",
-            icon="file-text",
-        ), unsafe_allow_html=True)
+        st.markdown(
+            render_empty_state(
+                title="No Analysis Results",
+                description="Complete the Intake tab first to generate your personalized learning plan.",
+                icon="file-text",
+            ),
+            unsafe_allow_html=True,
+        )
         st.button(
             "Go to Intake",
             key="goto_intake_plan_btn",
@@ -47,19 +50,21 @@ def render_plan_tab():
             args=("Intake",),
         )
         return
-    
+
     gaps = [SkillGap.model_validate(gap) for gap in results.get("gaps", [])]
-    
+
     if not gaps:
         st.markdown(
-            render_alert("🎉 No significant skill gaps found! You're well-prepared for this role.", "success"),
+            render_alert(
+                "🎉 No significant skill gaps found! You're well-prepared for this role.", "success"
+            ),
             unsafe_allow_html=True,
         )
         return
 
     plan: list[LearningTask] | None = None
     projects: list[ProjectRecommendation] | None = None
-    
+
     # Plan configuration
     st.markdown(
         render_section_header(
@@ -68,7 +73,7 @@ def render_plan_tab():
         ),
         unsafe_allow_html=True,
     )
-    
+
     col1, col2, col3 = st.columns(3)
     with col1:
         weeks = st.slider("Plan Duration (weeks)", 4, 16, 8, key="plan_weeks")
@@ -76,7 +81,7 @@ def render_plan_tab():
         hours_per_week = st.slider("Hours per Week", 5, 30, 15, key="plan_hours")
     with col3:
         max_projects = st.slider("Portfolio Projects", 1, 5, 3, key="plan_projects")
-    
+
     if st.button(
         "Generate Plan",
         type="primary",
@@ -90,7 +95,7 @@ def render_plan_tab():
             st.session_state.project_recommendations = projects
         st.success("Plan generated!")
         st.rerun()
-    
+
     # Display learning plan
     plan = st.session_state.get("learning_plan")
     if plan:
@@ -102,10 +107,12 @@ def render_plan_tab():
             ),
             unsafe_allow_html=True,
         )
-        
+
         # Group by week
         for task in plan:
-            with st.expander(f"Week {task.week}: {task.skill.title()} — {task.focus}", expanded=(task.week <= 2)):
+            with st.expander(
+                f"Week {task.week}: {task.skill.title()} — {task.focus}", expanded=(task.week <= 2)
+            ):
                 col1, col2 = st.columns([2, 1])
                 with col1:
                     st.markdown(f"**Learning:** {task.learning_task}")
@@ -116,11 +123,15 @@ def render_plan_tab():
                     st.metric("Hours", f"{task.estimated_hours:.0f}h")
                     if task.dependencies:
                         st.caption(f"Depends on: {', '.join(task.dependencies)}")
-                    completed = st.checkbox("Completed", key=f"task_complete_{task.week}_{task.skill}", value=task.completed)
+                    completed = st.checkbox(
+                        "Completed",
+                        key=f"task_complete_{task.week}_{task.skill}",
+                        value=task.completed,
+                    )
                     if completed != task.completed:
                         task.completed = completed
                         st.rerun()
-    
+
     # Display project recommendations
     projects = st.session_state.get("project_recommendations")
     if projects:
@@ -132,7 +143,7 @@ def render_plan_tab():
             ),
             unsafe_allow_html=True,
         )
-        
+
         for i, proj in enumerate(projects):
             with st.expander(f"📦 {proj.title}", expanded=(i == 0)):
                 col1, col2 = st.columns([2, 1])

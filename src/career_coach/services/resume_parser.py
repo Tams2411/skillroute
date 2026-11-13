@@ -1,9 +1,7 @@
 """Resume parser with PDF/DOCX/TXT support."""
 
 import logging
-from functools import lru_cache
 from pathlib import Path
-from typing import Union
 
 import pdfplumber
 import pypdf
@@ -28,7 +26,7 @@ class ResumeParser:
     def __init__(self):
         self._cache: dict[str, str] = {}
 
-    def extract_text(self, file_path: Union[str, Path]) -> str:
+    def extract_text(self, file_path: str | Path) -> str:
         """
         Extract text from a resume file with in-memory caching.
 
@@ -57,7 +55,7 @@ class ResumeParser:
         file_size = path.stat().st_size
         if file_size > self.MAX_SIZE_BYTES:
             raise ValueError(
-                f"File too large: {file_size / (1024*1024):.1f}MB > {settings.max_pdf_size_mb}MB limit"
+                f"File too large: {file_size / (1024 * 1024):.1f}MB > {settings.max_pdf_size_mb}MB limit"
             )
 
         # Check cache
@@ -160,15 +158,3 @@ class ResumeParser:
         except Exception as exc:
             logger.error("TXT extraction failed (%s)", type(exc).__name__)
             raise
-
-    def clear_cache(self) -> None:
-        """Clear the extraction cache."""
-        self._cache.clear()
-
-
-# Convenience function for simple usage
-@lru_cache(maxsize=32)
-def extract_resume_text_cached(file_path: str) -> str:
-    """Cached wrapper for simple extraction."""
-    parser = ResumeParser()
-    return parser.extract_text(file_path)

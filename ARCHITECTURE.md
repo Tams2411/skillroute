@@ -2,7 +2,7 @@
 
 > **Version:** 0.1.0
 > **Status:** Local-first MVP; optional hosted demo
-> **Last updated:** 2026-10-31
+> **Last updated:** 2026-11-11
 
 ## Overview
 
@@ -27,6 +27,8 @@ app.py (six sidebar-navigated pages)
 | `domain/schemas.py` | Pydantic contracts for evidence, gaps, tasks, interviews, and applications |
 | `domain/skill_taxonomy.py` | Canonical skills and aliases used by extraction |
 | `domain/scoring.py` | Evidence weights, gap priority, ranking, and readiness calculation |
+| `domain/timeutils.py` | Timezone-aware `utcnow()` used for every record timestamp |
+| `domain/textutils.py` | Word-boundary text slicing for evidence excerpts |
 | `services/resume_parser.py` | PDF, DOCX, and TXT extraction; PDF fallback; upload size/page checks |
 | `services/jd_parser.py` | Job-description section detection and exact taxonomy/alias matching |
 | `services/skill_extractor.py` | Skill matching and evidence-level inference |
@@ -34,7 +36,7 @@ app.py (six sidebar-navigated pages)
 | `services/plan_generator.py` | Template-based learning tasks and project recommendations |
 | `services/interview_service.py` | Static question selection and rubric evaluation |
 | `services/gemini_interview_service.py` | Optional Gemini request, timeout/size bounds, and strict response validation |
-| `services/tracker_service.py` | Local JSON-backed application CRUD and statistics |
+| `services/tracker_service.py` | Local JSON-backed application CRUD and statistics, with atomic writes and corruption quarantine |
 | `ui/*.py` | Intake, assessment, plan, interview, tracker, dashboard, navigation, and shared state |
 
 ## Analysis Contract
@@ -108,7 +110,7 @@ Streamlit's upload cap is configured to 5 MB in `.streamlit/config.toml`. No sep
 - Uploaded files are processed locally and the temporary file is cleaned up after parsing.
 - Optional Gemini feedback never changes core analysis or saved self-evaluation scores; model output is schema-validated and displayed as advisory.
 - The app has no authentication or rate limiting. Bind it to localhost and do not expose it to untrusted users or networks.
-- Tracker JSON is plaintext, shared by app users, and does not provide concurrency locking.
+- Tracker JSON is plaintext, shared by app users, and does not provide concurrency locking. Writes are atomic, a corrupt store is quarantined to a timestamped file rather than silently discarded, and a failed write resyncs in-memory state from disk.
 
 These controls do not sandbox PDF/DOCX parsers. Keep dependencies current and process only files you trust.
 
@@ -118,13 +120,14 @@ Run the locked CI checks from the repository root:
 
 ```bash
 uv sync --extra dev --locked
-uv run ruff check --select E4,E7,E9,F src/ tests/
+uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
 uv run mypy src/
 uv run pytest -q --cov=src/career_coach --cov-report=term-missing
 uv run pip-audit --progress-spinner off --skip-editable
 ```
 
-GitHub Actions runs these checks across Python 3.11 and 3.12. Streamlit AppTests cover sample analysis, plans/interviews, sidebar navigation, input state, safety limits, HTML escaping, and tracker persistence; there is no full browser E2E suite.
+GitHub Actions runs these checks across Python 3.11 and 3.12. Streamlit AppTests cover sample analysis, plans/interviews, sidebar navigation, input state, safety limits, HTML escaping, and tracker persistence and storage resilience; there is no full browser E2E suite.
 
 ## Planned Evolution
 

@@ -12,7 +12,7 @@ SkillRoute is a local-first Streamlit modular monolith. It already has:
 - Explainable gap records and a template-based weekly learning plan.
 - Interview question generation, rubric self-evaluation, and optional consent-based Gemini feedback.
 - A JSON-backed application tracker and six-page Streamlit interface.
-- CI for Python 3.11/3.12, focused Ruff checks, mypy, pytest, and dependency auditing.
+- CI for Python 3.11/3.12, the full configured Ruff rule set plus a format check, mypy, pytest with a coverage floor, and dependency auditing.
 
 The current application is useful as a single-user/local demo. It does not have authenticated profiles, durable analysis history, user-isolated storage, or a full evidence portfolio. The existing JSON tracker is shared by users of one app instance and is not suitable for concurrent multi-user persistence.
 
@@ -55,3 +55,19 @@ These are regression gates, not proof that every feature is correct. The current
 ## Audit limits
 
 This audit verifies the listed code paths and current test/architecture descriptions. It does not certify external hosting, parser sandboxing, production multi-user isolation, hiring outcomes, or the accuracy of the heuristic scoring model. Each item must be rechecked against implementation and tests when its PR is built.
+
+## Supplemental audit (2026-11-11)
+
+A further pass against the running application, exercising the tracker form and its JSON store, found defects outside the Phase 0 scope. All are remediated in the accompanying pull request.
+
+| Priority | Finding | User impact |
+|---|---|---|
+| P0 | Tracker writes were non-atomic: an interrupted write truncated `data/applications.json`, and a corrupt or partially written store was silently reset to empty. | Every saved application could be destroyed. |
+| P0 | The tracker form stored a naive `applied_at`; mixing that record with a loaded one raised `TypeError` in `list_all()` and blanked the tracker tab. | Tracker unusable after a single form entry. |
+| P1 | Domain enums rendered as `ApplicationStatus.APPLIED` in the UI. | Misleading status labels. |
+| P2 | The `data visualization` taxonomy category had no learning-resource entry, so several resources rendered with empty URLs. | Broken resource links. |
+| P2 | Experience years could be inferred from company boilerplate such as "10 years of company history". | Inflated experience requirements. |
+| P2 | Dashboard "Partial Matches" overlapped "Matched Skills". | Double-counted metrics. |
+| P2 | Evidence excerpts could begin mid-word. | Unreadable evidence text. |
+
+Re-verification: 122 tests passing at 82% statement coverage; Ruff, format check, and mypy clean.

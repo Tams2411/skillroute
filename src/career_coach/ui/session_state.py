@@ -25,7 +25,14 @@ def clear_analysis_state() -> None:
 def reset_workspace() -> None:
     """Clear intake inputs and derived results without deleting tracker records."""
     clear_analysis_state()
-    for key in ("resume_text", "jd_text", "user_skills", "_resume_text", "_jd_text", "_user_skills"):
+    for key in (
+        "resume_text",
+        "jd_text",
+        "user_skills",
+        "_resume_text",
+        "_jd_text",
+        "_user_skills",
+    ):
         st.session_state[key] = ""
 
     st.session_state["input_generation"] = st.session_state.get("input_generation", 0) + 1

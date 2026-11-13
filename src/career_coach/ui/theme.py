@@ -24,12 +24,12 @@ def apply_theme() -> None:
         --bg-tertiary: #1f2937;
         --bg-card: #1e293b;
         --bg-input: #0f172a;
-        
+
         --text-primary: #f1f5f9;
         --text-secondary: #94a3b8;
         --text-muted: #64748b;
         --text-inverse: #0b1120;
-        
+
         --accent-primary: #22d3ee;
         --accent-primary-hover: #06b6d4;
         --accent-secondary: #8b5cf6;
@@ -37,23 +37,23 @@ def apply_theme() -> None:
         --accent-warning: #f59e0b;
         --accent-error: #ef4444;
         --accent-info: #3b82f6;
-        
+
         --border-primary: #334155;
         --border-secondary: #475569;
         --border-focus: #22d3ee;
-        
+
         --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
         --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
         --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.3);
-        
+
         --radius-sm: 4px;
         --radius-md: 8px;
         --radius-lg: 12px;
-        
+
         --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
     }
-    
+
     /* ========================================
        Global Overrides
        ======================================== */
@@ -62,18 +62,18 @@ def apply_theme() -> None:
         color: var(--text-primary);
         font-family: var(--font-sans);
     }
-    
+
     .main .block-container {
         padding-top: 2rem;
         padding-bottom: 3rem;
         max-width: 1200px;
     }
-    
+
     /* Hide Streamlit branding */
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
     header { visibility: hidden; }
-    
+
     /* ========================================
        Typography
        ======================================== */
@@ -83,16 +83,16 @@ def apply_theme() -> None:
         line-height: 1.25;
         letter-spacing: -0.02em;
     }
-    
+
     h1 { font-size: 2.25rem; margin-bottom: 0.5rem; }
     h2 { font-size: 1.75rem; margin-top: 2rem; margin-bottom: 1rem; }
     h3 { font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-    
+
     p { color: var(--text-secondary); line-height: 1.6; }
-    
+
     a { color: var(--accent-primary); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    
+
     code {
         background: var(--bg-tertiary);
         color: var(--accent-primary);
@@ -101,7 +101,7 @@ def apply_theme() -> None:
         font-family: var(--font-mono);
         font-size: 0.875em;
     }
-    
+
     pre {
         background: var(--bg-input);
         border: 1px solid var(--border-primary);
@@ -109,9 +109,9 @@ def apply_theme() -> None:
         padding: 1rem;
         overflow-x: auto;
     }
-    
+
     pre code { background: none; padding: 0; color: inherit; }
-    
+
     /* ========================================
        Buttons
        ======================================== */
@@ -126,18 +126,18 @@ def apply_theme() -> None:
         transition: all 0.15s ease;
         box-shadow: var(--shadow-sm);
     }
-    
+
     .stButton > button:hover {
         border-color: var(--accent-primary);
         box-shadow: var(--shadow-md);
         background: var(--bg-tertiary);
     }
-    
+
     .stButton > button:focus {
         outline: none;
         box-shadow: 0 0 0 3px var(--accent-primary);
     }
-    
+
     .stButton > button[kind="primary"] {
         background: var(--accent-primary);
         color: var(--text-inverse);
@@ -159,17 +159,17 @@ def apply_theme() -> None:
     .stButton > button[kind="primary"]:disabled p {
         color: var(--text-primary) !important;
     }
-    
+
     .stButton > button[kind="primary"]:hover {
         background: var(--accent-primary-hover);
         border-color: var(--accent-primary-hover);
     }
-    
+
     .stButton > button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
-    
+
     /* ========================================
        Inputs
        ======================================== */
@@ -183,13 +183,13 @@ def apply_theme() -> None:
         border-radius: var(--radius-md) !important;
         font-family: var(--font-sans) !important;
     }
-    
+
     .stTextInput > div > div > input:focus,
     .stTextArea > div > div > textarea:focus {
         border-color: var(--border-focus) !important;
         box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15) !important;
     }
-    
+
     .stTextInput label,
     .stTextArea label,
     .stSelectbox label,
@@ -199,22 +199,22 @@ def apply_theme() -> None:
         font-weight: 500;
         font-size: 0.875rem;
     }
-    
+
     /* File uploader */
     .stFileUploader > div > div {
         background: var(--bg-card) !important;
         border: 2px dashed var(--border-secondary) !important;
         border-radius: var(--radius-lg) !important;
     }
-    
+
     .stFileUploader > div > div:hover {
         border-color: var(--accent-primary) !important;
     }
-    
+
     .stFileUploader > div > div > div {
         color: var(--text-secondary) !important;
     }
-    
+
     /* ========================================
        Cards & Containers
        ======================================== */
@@ -225,12 +225,12 @@ def apply_theme() -> None:
         padding: 1.25rem;
         transition: all 0.15s ease;
     }
-    
+
     .skill-card:hover {
         border-color: var(--border-secondary);
         box-shadow: var(--shadow-md);
     }
-    
+
     .metric-card {
         background: var(--bg-card);
         border: 1px solid var(--border-primary);
@@ -238,20 +238,20 @@ def apply_theme() -> None:
         padding: 1.5rem;
         text-align: center;
     }
-    
+
     .metric-value {
         font-size: 2.5rem;
         font-weight: 700;
         color: var(--text-primary);
         line-height: 1;
     }
-    
+
     .metric-label {
         color: var(--text-muted);
         font-size: 0.875rem;
         margin-top: 0.5rem;
     }
-    
+
     /* ========================================
        Chips / Badges
        ======================================== */
@@ -265,13 +265,13 @@ def apply_theme() -> None:
         font-weight: 500;
         white-space: nowrap;
     }
-    
+
     .chip-required { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
     .chip-preferred { background: rgba(245, 158, 11, 0.15); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.3); }
     .chip-matched { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
     .chip-gap { background: rgba(34, 211, 238, 0.15); color: #a5f3fc; border: 1px solid rgba(34, 211, 238, 0.3); }
     .chip-verified { background: rgba(139, 92, 246, 0.15); color: #d8b4fe; border: 1px solid rgba(139, 92, 246, 0.3); }
-    
+
     /* ========================================
        Progress & Status
        ======================================== */
@@ -281,14 +281,14 @@ def apply_theme() -> None:
         border-radius: 3px;
         overflow: hidden;
     }
-    
+
     .progress-fill {
         height: 100%;
         background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
         border-radius: 3px;
         transition: width 0.3s ease;
     }
-    
+
     .status-indicator {
         display: inline-flex;
         align-items: center;
@@ -298,12 +298,12 @@ def apply_theme() -> None:
         font-size: 0.875rem;
         font-weight: 500;
     }
-    
+
     .status-success { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
     .status-warning { background: rgba(245, 158, 11, 0.15); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.3); }
     .status-error { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
     .status-info { background: rgba(59, 130, 246, 0.15); color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.3); }
-    
+
     /* ========================================
        Tabs
        ======================================== */
@@ -314,7 +314,7 @@ def apply_theme() -> None:
         border-radius: var(--radius-lg);
         border: 1px solid var(--border-primary);
     }
-    
+
     .stTabs [data-baseweb="tab"] {
         background: transparent !important;
         color: var(--text-secondary) !important;
@@ -324,18 +324,18 @@ def apply_theme() -> None:
         font-size: 0.875rem !important;
         border: none !important;
     }
-    
+
     .stTabs [data-baseweb="tab"]:hover {
         color: var(--text-primary) !important;
         background: var(--bg-tertiary) !important;
     }
-    
+
     .stTabs [aria-selected="true"] {
         background: var(--bg-card) !important;
         color: var(--accent-primary) !important;
         box-shadow: var(--shadow-sm) !important;
     }
-    
+
     /* ========================================
        Expander
        ======================================== */
@@ -344,12 +344,12 @@ def apply_theme() -> None:
         border: 1px solid var(--border-primary) !important;
         border-radius: var(--radius-lg) !important;
     }
-    
+
     .stExpander summary {
         color: var(--text-primary) !important;
         font-weight: 500 !important;
     }
-    
+
     /* ========================================
        Dataframe / Table
        ======================================== */
@@ -358,14 +358,14 @@ def apply_theme() -> None:
         border: 1px solid var(--border-primary) !important;
         border-radius: var(--radius-lg) !important;
     }
-    
+
     /* ========================================
        Spinner
        ======================================== */
     .stSpinner > div {
         border-top-color: var(--accent-primary) !important;
     }
-    
+
     /* ========================================
        Alert / Info boxes
        ======================================== */
@@ -375,12 +375,12 @@ def apply_theme() -> None:
         border-left: 4px solid;
         margin: 1rem 0;
     }
-    
+
     .alert-info { background: rgba(59, 130, 246, 0.1); border-color: var(--accent-info); color: var(--text-primary); }
     .alert-success { background: rgba(34, 197, 94, 0.1); border-color: var(--accent-success); color: var(--text-primary); }
     .alert-warning { background: rgba(245, 158, 11, 0.1); border-color: var(--accent-warning); color: var(--text-primary); }
     .alert-error { background: rgba(239, 68, 68, 0.1); border-color: var(--accent-error); color: var(--text-primary); }
-    
+
     /* ========================================
        Sidebar
        ======================================== */
@@ -388,9 +388,9 @@ def apply_theme() -> None:
         background: var(--bg-secondary);
         border-right: 1px solid var(--border-primary);
     }
-    
+
     [data-testid="stSidebar"] .stMarkdown { color: var(--text-secondary); }
-    
+
     /* ========================================
        Scrollbar
        ======================================== */
@@ -398,16 +398,16 @@ def apply_theme() -> None:
     ::-webkit-scrollbar-track { background: var(--bg-primary); }
     ::-webkit-scrollbar-thumb { background: var(--border-secondary); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--border-primary); }
-    
+
     /* ========================================
        Animations
        ======================================== */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    
+
     .animate-fade-in { animation: fadeIn 0.3s ease forwards; }
     .animate-pulse { animation: pulse 1.5s ease-in-out infinite; }
-    
+
     /* ========================================
        Utility Classes
        ======================================== */
@@ -418,7 +418,7 @@ def apply_theme() -> None:
     .text-warning { color: var(--accent-warning); }
     .text-error { color: var(--accent-error); }
     .text-accent { color: var(--accent-primary); }
-    
+
     .mt-1 { margin-top: 0.5rem; }
     .mt-2 { margin-top: 1rem; }
     .mt-3 { margin-top: 1.5rem; }
@@ -427,7 +427,7 @@ def apply_theme() -> None:
     .mb-3 { margin-bottom: 1.5rem; }
     .gap-1 { gap: 0.5rem; }
     .gap-2 { gap: 1rem; }
-    
+
     .flex { display: flex; }
     .flex-col { flex-direction: column; }
     .items-center { align-items: center; }
@@ -447,6 +447,7 @@ def render_svg(icon_name: str, size: int = 20, color: str = "currentColor") -> s
         "clipboard-list": '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/>',
         "check-circle": '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
         "alert-circle": '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+        "help-circle": '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
         "info": '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
         "chevron-right": '<polyline points="9 18 15 12 9 6"/>',
         "chevron-down": '<polyline points="6 9 12 15 18 9"/>',
@@ -461,15 +462,28 @@ def render_svg(icon_name: str, size: int = 20, color: str = "currentColor") -> s
         "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
         "arrow-right": '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
     }
-    
+
     svg = icons.get(icon_name, icons["file-text"])
     return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{svg}</svg>'
 
 
+# UI variant names that map onto the themed chip palette.
+_CHIP_VARIANT_ALIASES = {
+    "teal": "gap",
+    "purple": "verified",
+    "error": "required",
+    "warning": "preferred",
+    "success": "matched",
+}
+
+
 def render_chip(label: str, variant: str = "default", icon: str | None = None) -> str:
     """Render a styled chip/badge."""
+    variant = _CHIP_VARIANT_ALIASES.get(variant, variant)
     icon_html = render_svg(icon, 12) if icon else ""
-    return f'<span class="chip chip-{_escape_html(variant)}">{icon_html}{_escape_html(label)}</span>'
+    return (
+        f'<span class="chip chip-{_escape_html(variant)}">{icon_html}{_escape_html(label)}</span>'
+    )
 
 
 def render_status(message: str, variant: str = "info", icon: str | None = None) -> str:
@@ -477,7 +491,7 @@ def render_status(message: str, variant: str = "info", icon: str | None = None) 
     icon_html = render_svg(icon, 16) if icon else ""
     return (
         f'<div class="status-indicator status-{_escape_html(variant)}">'
-        f'{icon_html}{_escape_html(message)}</div>'
+        f"{icon_html}{_escape_html(message)}</div>"
     )
 
 
@@ -485,8 +499,7 @@ def render_alert(message: str, variant: str = "info", icon: str | None = None) -
     """Render an alert box."""
     icon_html = render_svg(icon, 18) if icon else ""
     return (
-        f'<div class="alert alert-{_escape_html(variant)}">'
-        f'{icon_html}{_escape_html(message)}</div>'
+        f'<div class="alert alert-{_escape_html(variant)}">{icon_html}{_escape_html(message)}</div>'
     )
 
 
@@ -495,20 +508,24 @@ def render_metric(label: object, value: object, delta: object | None = None) -> 
     delta_html = (
         f'<div class="text-success text-muted">{_escape_html(delta)}</div>' if delta else ""
     )
-    return textwrap.dedent(f'''
+    return (
+        textwrap.dedent(f"""
     <div class="metric-card animate-fade-in">
         <div class="metric-value">{_escape_html(value)}</div>
         <div class="metric-label">{_escape_html(label)}</div>
         {delta_html}
     </div>
-    ''').replace("\n", "").strip()
+    """)
+        .replace("\n", "")
+        .strip()
+    )
 
 
 def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     """Render a skill card with evidence and priority."""
     evidence = skill.get("evidence_level", "none")
     priority = skill.get("priority", 0)
-    
+
     evidence_colors = {
         "verified": ("chip-verified", "verified"),
         "demonstrated": ("chip-matched", "demonstrated"),
@@ -517,14 +534,14 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
         "none": ("chip-gap", "missing"),
     }
     chip_class, chip_label = evidence_colors.get(evidence, ("chip-gap", "unknown"))
-    
+
     priority_bar = ""
     if show_priority:
         pct = int(priority * 100)
         priority_bar = (
             '<div class="progress-bar" style="margin-top: 0.75rem;">'
             f'<div class="progress-fill" style="width: {pct}%"></div>'
-            '</div>'
+            "</div>"
             f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Priority: {pct}%</div>'
         )
 
@@ -551,28 +568,26 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     requirement_type = skill.get("requirement_type")
     if requirement_type:
         requirement_type = getattr(requirement_type, "value", requirement_type)
-        metadata.append(
-            f"JD context: {_escape_html(str(requirement_type).replace('_', ' '))}"
-        )
+        metadata.append(f"JD context: {_escape_html(str(requirement_type).replace('_', ' '))}")
 
     card_parts = [
         '<div class="skill-card animate-fade-in">',
         '<div class="flex justify-between items-center mb-1" style="gap: 0.5rem;">',
         f'<strong style="font-size: 1rem;">{_escape_html(canonical_skill)}</strong>',
         render_chip(chip_label, chip_class.replace("chip-", "")),
-        '</div>',
+        "</div>",
         f'<div class="text-secondary text-muted" style="font-size: 0.875rem;">{_escape_html(reason)}</div>',
         priority_bar,
     ]
     if jd_evidence:
         card_parts.append(
             f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.5rem;">'
-            f'JD: {_escape_html(jd_evidence[:150])}...</div>'
+            f"JD: {_escape_html(jd_evidence[:150])}...</div>"
         )
     if resume_evidence:
         card_parts.append(
             f'<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">'
-            f'Evidence: {_escape_html(resume_evidence[:150])}...</div>'
+            f"Evidence: {_escape_html(resume_evidence[:150])}...</div>"
         )
     if metadata:
         card_parts.append(
@@ -583,22 +598,26 @@ def render_skill_card(skill: dict, show_priority: bool = False) -> str:
     if uncertainty:
         card_parts.append(
             f'<div class="text-warning" style="font-size: 0.75rem; margin-top: 0.25rem;">'
-            f'⚠ {_escape_html(uncertainty)}</div>'
+            f"⚠ {_escape_html(uncertainty)}</div>"
         )
-    card_parts.append('</div>')
+    card_parts.append("</div>")
     return "".join(card_parts)
 
 
 def render_empty_state(title: str, description: str, icon: str = "file-text") -> str:
     """Render an empty state."""
     icon_html = render_svg(icon, 48, "var(--text-muted)")
-    return textwrap.dedent(f'''
+    return (
+        textwrap.dedent(f"""
     <div class="skill-card text-center" style="padding: 3rem 2rem;">
         <div class="text-muted" style="margin-bottom: 1rem;">{icon_html}</div>
         <h3 style="margin-bottom: 0.5rem;">{_escape_html(title)}</h3>
         <p class="text-secondary">{_escape_html(description)}</p>
     </div>
-    ''').replace("\n", "").strip()
+    """)
+        .replace("\n", "")
+        .strip()
+    )
 
 
 def render_section_header(
@@ -609,7 +628,8 @@ def render_section_header(
 ) -> str:
     """Render a section header with optional action."""
     icon_html = render_svg(icon, 24) if icon else ""
-    return textwrap.dedent(f'''
+    return (
+        textwrap.dedent(f"""
     <div class="flex justify-between items-start mb-2">
         <div>
             <div class="flex items-center gap-1">
@@ -620,4 +640,7 @@ def render_section_header(
         </div>
         {f'<span class="text-accent" style="font-size: 0.875rem;">{_escape_html(action)}</span>' if action else ""}
     </div>
-    ''').replace("\n", "").strip()
+    """)
+        .replace("\n", "")
+        .strip()
+    )

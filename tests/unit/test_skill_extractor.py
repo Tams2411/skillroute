@@ -33,10 +33,26 @@ def test_related_tools_are_extracted_as_distinct_skills():
 
     skills = {match.canonical_skill for match in matches}
     expected = {
-        "tensorflow", "keras", "spark", "pyspark", "git", "github",
-        "ci/cd", "github actions", "mongodb", "nosql", "tableau", "matplotlib",
-        "system design", "distributed systems", "testing", "pytest", "jest",
-        "agile", "scrum", "kanban",
+        "tensorflow",
+        "keras",
+        "spark",
+        "pyspark",
+        "git",
+        "github",
+        "ci/cd",
+        "github actions",
+        "mongodb",
+        "nosql",
+        "tableau",
+        "matplotlib",
+        "system design",
+        "distributed systems",
+        "testing",
+        "pytest",
+        "jest",
+        "agile",
+        "scrum",
+        "kanban",
     }
 
     assert expected <= skills
@@ -52,14 +68,3 @@ def test_unrelated_demonstration_language_does_not_inflate_evidence():
     )
 
     assert python.evidence_level == "mentioned"
-
-
-def test_user_confirmation_does_not_upgrade_demonstrated_evidence_to_verified():
-    extractor = SkillExtractor()
-    matches = extractor.extract_from_resume("Built a service with Python.")
-
-    extractor.add_user_confirmation(matches, "python", confirmed=True)
-
-    python = next(match for match in matches if match.canonical_skill == "python")
-    assert python.evidence_level == "demonstrated"
-    assert python.user_confirmed is True

@@ -1,5 +1,6 @@
 """Scoring and priority calculation for skill gaps."""
 
+from career_coach.config import settings
 from career_coach.domain.schemas import (
     EvidenceLevel,
     JobSkillRequirement,
@@ -7,7 +8,6 @@ from career_coach.domain.schemas import (
     SkillGap,
     SkillRequirementType,
 )
-from career_coach.config import settings
 
 
 def evidence_level_to_weight(level: EvidenceLevel) -> float:
@@ -68,7 +68,9 @@ def compute_skill_gap(
     else:
         evidence_level = resume_evidence.evidence_level
         evidence_strength = evidence_level_to_weight(evidence_level)
-        resume_evidence_str = resume_evidence.supporting_evidence or f"Evidence level: {evidence_level.value}"
+        resume_evidence_str = (
+            resume_evidence.supporting_evidence or f"Evidence level: {evidence_level.value}"
+        )
         resume_evidence_source = resume_evidence.source
         resume_extraction_confidence = resume_evidence.extraction_confidence
 
@@ -159,10 +161,7 @@ def calculate_readiness_score(gaps: list[SkillGap]) -> float | None:
     if total_weight == 0:
         return None
 
-    covered_weight = sum(
-        g.role_relevance * g.evidence_strength
-        for g in gaps
-    )
+    covered_weight = sum(g.role_relevance * g.evidence_strength for g in gaps)
 
     return min(1.0, covered_weight / total_weight)
 

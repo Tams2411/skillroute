@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     def evidence_weights(self) -> dict[str, float]:
         """Map EvidenceLevel to numeric weight."""
         from career_coach.domain.schemas import EvidenceLevel
+
         return {
             EvidenceLevel.NONE: self.evidence_none,
             EvidenceLevel.MENTIONED: self.evidence_mentioned,
@@ -44,6 +45,7 @@ class Settings(BaseSettings):
             EvidenceLevel.DEMONSTRATED: self.evidence_demonstrated,
             EvidenceLevel.VERIFIED: self.evidence_verified,
         }
+
 
 # Global settings instance
 settings = Settings()

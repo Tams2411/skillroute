@@ -41,13 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- GitHub Actions CI for Python 3.11/3.12, focused linting, type checking, coverage-enabled tests, and dependency auditing
+- GitHub Actions CI for Python 3.11/3.12, linting, type checking, coverage-enabled tests, and dependency auditing
 - Optional Gemini interview feedback with explicit consent, session-only user keys, strict response validation, and deterministic fallback
 - `uv.lock` for reproducible app and development dependency installs
 - Streamlit Community Cloud setup and branch-protection guidance
 - Integration coverage for analysis, learning plans, interview practice, tracker persistence, and input safety
 - Upload and pasted-text limits with a 5 MB Streamlit upload cap
 - HTML escaping for dynamic text rendered in custom UI components
+- Tracker storage resilience: atomic writes, corruption quarantine, and UI warnings when a write fails
+- Timezone-aware `utcnow()` and word-boundary text-slice helpers
+- Regression coverage for tracker persistence, stored-timestamp invariants, themed chip variants, and evidence excerpt boundaries
 
 ### Changed
 - Keep related technologies and concepts as separate taxonomy entries rather than treating them as aliases
@@ -63,6 +66,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the MIT license and declared the PDF/DOCX parser dependencies
 - Replaced non-programmatic tabs with working sidebar page navigation and preserved intake values across pages
 - Added skill-specific learning resources and merged duplicate project recommendations
+- Domain enums derive from `StrEnum` so UI rendering shows the value rather than the enum path
+- Dashboard "Partial Matches" is derived from weak-evidence matches and no longer overlaps "Matched Skills"
+- CI runs the full Ruff rule set declared in `pyproject.toml`, a format check, mypy, and a 75% coverage floor; fail-fast is disabled so every job reports
+- README CI badge, clone URL, and the contributor PR target now reference the upstream repository instead of a personal fork
+
+### Removed
+- Removed unreachable code with no callers in the application: `SkillExtractor.extract_from_jd`, `get_canonical_skill`, `get_all_canonical_skills`, and `add_user_confirmation`; `ResumeParser.clear_cache` and the `extract_resume_text_cached` wrapper; `SkillGapService.get_gap_details` and its private helpers; `get_questions_for_skill`; `ApplicationTracker.list_by_status`; the `parse_jd` convenience wrapper; and `save_taxonomy`
+- Removed the unreferenced `.dependencygraph/` editor configuration
 
 ### Fixed
 - Prevented manually entered skills from being treated as verified evidence; normalize supported aliases and report unrecognized entries
@@ -77,3 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made interview questions skill-focused, distinguished behavioral rubrics, and persisted validated rubric scores
 - Replaced deprecated Streamlit `use_container_width` arguments with `width="stretch"`
 - Updated README, contributor guidance, architecture, and limitations for CI and demo hosting
+- **Tracker data loss:** an interrupted write could truncate `data/applications.json`, and a corrupt store was silently reset to empty, destroying every saved application. A failed write now resyncs in-memory state from disk on every failure path, not only mid-write
+- **Tracker tab crash:** a form-created record stored a naive timestamp, so mixing it with a loaded record raised a `TypeError` in `list_all()` and blanked the tracker
+- Several learning resources rendered with empty URLs because the `data visualization` taxonomy category had no resource entry
+- Experience years could be inferred from company boilerplate such as "10 years of company history"
+- Evidence excerpts could begin mid-word ("ience with Apache Spark")
+- Replaced deprecated `datetime.utcnow()` with a timezone-aware helper

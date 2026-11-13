@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![CI](https://github.com/AshayK003/skillroute/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AshayK003/skillroute/actions/workflows/ci.yml)
+[![CI](https://github.com/Tams2411/skillroute/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tams2411/skillroute/actions/workflows/ci.yml)
 
 **A local-first career-pivot coach that compares resume evidence with a job description, prioritizes skill gaps, and supports learning plans, interview practice, and application tracking. Core analysis is deterministic; optional Gemini feedback can help users review mock-interview answers.**
 
@@ -12,7 +12,7 @@
 
 ```bash
 # 1. Clone and enter
-git clone https://github.com/AshayK003/skillroute.git
+git clone https://github.com/Tams2411/skillroute.git
 cd skillroute
 
 # 2. Install the locked runtime and development dependencies
@@ -40,7 +40,7 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | **Assessment** | Gap analysis with priority scoring: `Relevance × (1 − Evidence) × Extraction Confidence` |
 | **Plan** | Weekly learning tasks, curated resources, and project recommendations |
 | **Interview** | Rubric-based mock questions (technical + behavioral), self-evaluation scoring, and optional Gemini feedback |
-| **Tracker** | Application CRUD — company, role, URL, status, notes + response/interview/offer rates |
+| **Tracker** | Application CRUD — company, role, URL, status, notes + response/interview/offer rates; atomic writes with corruption quarantine |
 | **Dashboard** | Weighted evidence coverage when requirements are available, application stats, quick-action cards |
 
 ### Core Design Principles
@@ -55,7 +55,7 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 - **Optional AI feedback** — Gemini can provide advisory interview-answer feedback after the user enters a key, explicitly consents, and requests it. No resume/JD text is sent.
 - **Validated inputs** — Upload size/page limits and pasted-text limits are enforced.
 - **Accessible actions** — Primary button labels remain high-contrast in enabled and disabled states.
-- **Local persistence** — Application records are stored in `data/applications.json`.
+- **Local persistence** — Application records are stored in `data/applications.json` with atomic writes; a corrupt or partially written store is quarantined rather than silently discarded.
 - **Six-page Streamlit UI** — Sidebar navigation for intake, assessment, learning plan, interview practice, tracker, and dashboard.
 
 ---
@@ -101,6 +101,8 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | `domain/schemas.py` | Pydantic contracts for skill evidence/gaps, learning tasks, interview sessions, and application records |
 | `domain/skill_taxonomy.py` | `SkillTaxonomy` — canonical skill catalog with aliases, categories, related skills |
 | `domain/scoring.py` | Priority formula, evidence weights, gap ranking, readiness calculation |
+| `domain/timeutils.py` | Single timezone-aware `utcnow()` used for every record timestamp |
+| `domain/textutils.py` | Text-slice helper that snaps evidence excerpts to word boundaries |
 | `services/resume_parser.py` | Multi-format parser (PDF/DOCX/TXT), LRU cache, 5MB/10-page limits |
 | `services/jd_parser.py` | JD section detection and exact taxonomy/alias matching |
 | `services/skill_extractor.py` | Evidence-level inference from context, taxonomy normalization |
@@ -108,8 +110,8 @@ Open http://localhost:8501. Upload a resume (PDF/DOCX/TXT), paste a job descript
 | `services/plan_generator.py` | Learning plan + project recommendations from top gaps |
 | `services/interview_service.py` | Skill-focused technical/behavioral questions + deterministic self-evaluation rubrics |
 | `services/gemini_interview_service.py` | Optional Gemini interview feedback, bounded requests, and strict response validation |
-| `services/tracker_service.py` | Application tracking with JSON persistence |
-| `ui/theme.py` | Professional dark theme (550 lines, CSS variables, SVG icons) |
+| `services/tracker_service.py` | Application tracking with atomic JSON persistence, corruption quarantine, and statistics |
+| `ui/theme.py` | Professional dark theme (646 lines, CSS variables, SVG icons) |
 | `ui/*.py` | Page implementations, sidebar navigation, and shared theme |
 
 ### Data Flow
@@ -158,7 +160,7 @@ uv run pytest -q
 uv run pytest -q --cov=src/career_coach --cov-report=term-missing
 ```
 
-The suite includes unit and Streamlit integration tests for sample analysis, plan and interview generation, optional Gemini request validation and failure handling, navigation, input safety, and tracker persistence.
+The suite includes unit and Streamlit integration tests for sample analysis, plan and interview generation, optional Gemini request validation and failure handling, navigation, input safety, tracker storage resilience (corrupt or partially written stores, unwritable paths), and stored-timestamp invariants.
 
 ### Test Structure
 
@@ -171,11 +173,16 @@ tests/
 │   ├── test_skill_extractor.py
 │   ├── test_jd_parser.py
 │   ├── test_interview_service.py
+│   ├── test_gemini_interview_service.py
 │   ├── test_plan_recommendations.py
 │   ├── test_tracker_stats.py
+│   ├── test_tracker_persistence.py
 │   ├── test_resume_parser.py
 │   ├── test_ui_escape.py
-│   └── test_upload_validation.py
+│   ├── test_upload_validation.py
+│   ├── test_theme_chips.py
+│   ├── test_textutils.py
+│   └── test_timeutils.py
 └── integration/
     ├── test_analysis_workflow.py
     ├── test_input_safety.py
@@ -205,8 +212,9 @@ pip install -e ".[dev]"
 ### Code Quality
 
 ```bash
-# Run the same focused lint gate as CI
-uv run ruff check --select E4,E7,E9,F src/ tests/
+# Run the same lint, format, and type gates as CI
+uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
 
 # Type check
 uv run mypy src/
@@ -264,7 +272,7 @@ See [LIMITATIONS.md](LIMITATIONS.md) for known constraints and demo status.
 
 ## CI and Streamlit Community Cloud
 
-GitHub Actions runs on pushes, pull requests targeting `main`, and manual dispatch. The workflow tests Python 3.11 and 3.12, runs focused Ruff checks and mypy, executes the test suite with coverage, and audits dependencies. `uv.lock` keeps CI and local installs reproducible.
+GitHub Actions runs on pushes, pull requests targeting `main`, and manual dispatch. The workflow tests Python 3.11 and 3.12, runs the full Ruff rule set declared in `pyproject.toml` plus a format check and mypy, executes the test suite with a 75% coverage floor, and audits dependencies. `uv.lock` keeps CI and local installs reproducible.
 
 To enable deployment, create an app in [Streamlit Community Cloud](https://share.streamlit.io/) and select this repository, the `main` branch, and `app.py` as the entry point. Choose Python 3.12. After the initial setup, Community Cloud rebuilds the app when the selected branch changes; this repository does not include a separate deployment workflow or Cloud credentials.
 

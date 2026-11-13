@@ -1,8 +1,9 @@
 """Test configuration and fixtures."""
 
-import pytest
-import tempfile
 import os
+import tempfile
+
+import pytest
 
 
 @pytest.fixture
@@ -62,20 +63,20 @@ Responsibilities:
 def temp_pdf_file():
     """Create a temporary PDF file for testing."""
     import pypdf
-    
+
     # Create a simple PDF in memory
     writer = pypdf.PdfWriter()
     page = pypdf.PageObject.create_blank_page(width=612, height=792)
     # Note: Can't easily add text to blank page without more work
     # This fixture provides a path that tests can use
-    
+
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
         writer.add_page(page)
         writer.write(f)
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     try:
         os.unlink(temp_path)
     except Exception:
@@ -88,9 +89,9 @@ def temp_txt_file(sample_resume_text):
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         f.write(sample_resume_text)
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     try:
         os.unlink(temp_path)
     except Exception:

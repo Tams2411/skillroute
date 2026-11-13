@@ -327,7 +327,6 @@ def test_gemini_provider_error_keeps_deterministic_interview_available(monkeypat
 
     assert not app.exception
     assert any(
-        "deterministic self-evaluation remains available" in item.value
-        for item in app.warning
+        "deterministic self-evaluation remains available" in item.value for item in app.warning
     )
     assert any("not an automatic grade" in item.value for item in app.caption)

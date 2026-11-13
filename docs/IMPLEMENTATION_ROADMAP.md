@@ -89,7 +89,7 @@ For every implementation PR:
 - [x] Implement all six Phase 0 correctness items as scoped, stacked PRs (#7–#11); required CI checks pass.
 - [ ] Merge the roadmap and Phase 0 PRs in dependency order before starting the evidence foundation.
 
-The Phase 0 PRs are open for review and merge. The latest full local suite passed 97 tests at 80% coverage; a later UI regression test passed separately and PR #10 CI passed after that fix. Ruff, mypy, and dependency auditing passed.
+The Phase 0 PRs are open for review and merge. The latest full local suite passed 122 tests at 82% coverage; a later UI regression test passed separately and PR #10 CI passed after that fix. Ruff, format check, mypy, and dependency auditing passed.
 
 ## Baseline
 

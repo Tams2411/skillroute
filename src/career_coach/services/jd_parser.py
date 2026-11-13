@@ -2,16 +2,18 @@
 
 import re
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, TypedDict
+from enum import StrEnum
+from typing import TypedDict
 
 from career_coach.config import settings
-from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
 from career_coach.domain.schemas import SkillRequirementType
+from career_coach.domain.skill_taxonomy import SkillTaxonomy, load_taxonomy
+from career_coach.domain.textutils import snap_slice
 
 
-class JDSectionType(str, Enum):
+class JDSectionType(StrEnum):
     """Types of JD sections."""
+
     REQUIREMENTS = "requirements"
     PREFERRED = "preferred"
     RESPONSIBILITIES = "responsibilities"
@@ -25,6 +27,7 @@ class JDSectionType(str, Enum):
 @dataclass
 class JDSection:
     """A section extracted from a job description."""
+
     section_type: JDSectionType
     content: str
     start_pos: int
@@ -89,7 +92,7 @@ class JDParser:
         r"(\d{1,2})\s*-\s*\d+\s*years?",
     ]
 
-    def __init__(self, taxonomy: Optional[SkillTaxonomy] = None):
+    def __init__(self, taxonomy: SkillTaxonomy | None = None):
         self.taxonomy = taxonomy or load_taxonomy()
         self._compiled_patterns = {
             section_type: [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in patterns]
@@ -138,9 +141,7 @@ class JDParser:
             (education_text, SkillRequirementType.EDUCATION),
         )
         for content, requirement_type in section_inputs:
-            candidates.extend(
-                self._extract_skills_with_context(content, requirement_type)
-            )
+            candidates.extend(self._extract_skills_with_context(content, requirement_type))
 
         best_by_skill: dict[str, ExtractedSkill] = {}
         for candidate in candidates:
@@ -158,17 +159,24 @@ class JDParser:
             skill for skill in selected if skill["requirement_type"] in required_types
         ]
         preferred_skills = [
-            skill for skill in selected
+            skill
+            for skill in selected
             if skill["requirement_type"] == SkillRequirementType.PREFERRED.value
         ]
         contextual_skills = [
-            skill for skill in selected
+            skill
+            for skill in selected
             if skill["requirement_type"] not in required_types
             and skill["requirement_type"] != SkillRequirementType.PREFERRED.value
         ]
 
-        # Extract experience requirement
-        target_experience = self._extract_experience(experience_text or text)
+        # Extract experience requirement. Fall back to the requirement, skills
+        # and preferred sections only — the whole JD carries boilerplate such as
+        # "10 years of company history", which is not a candidate requirement.
+        experience_source = experience_text or " ".join(
+            part for part in (requirements_text, skills_text, preferred_text) if part
+        )
+        target_experience = self._extract_experience(experience_source)
 
         return {
             "raw_text": jd_text,
@@ -210,27 +218,31 @@ class JDParser:
         header_matches.sort(key=lambda x: x[0])
 
         # Extract content between headers
-        for i, (start, end, section_type) in enumerate(header_matches):
+        for i, (_start, end, section_type) in enumerate(header_matches):
             content_start = end
             content_end = header_matches[i + 1][0] if i + 1 < len(header_matches) else len(text)
             content = text[content_start:content_end].strip()
 
             if content:
-                sections.append(JDSection(
-                    section_type=section_type,
-                    content=content,
-                    start_pos=content_start,
-                    end_pos=content_end,
-                ))
+                sections.append(
+                    JDSection(
+                        section_type=section_type,
+                        content=content,
+                        start_pos=content_start,
+                        end_pos=content_end,
+                    )
+                )
 
         # If no sections found, treat entire text as requirements
         if not sections:
-            sections.append(JDSection(
-                section_type=JDSectionType.REQUIREMENTS,
-                content=text,
-                start_pos=0,
-                end_pos=len(text),
-            ))
+            sections.append(
+                JDSection(
+                    section_type=JDSectionType.REQUIREMENTS,
+                    content=text,
+                    start_pos=0,
+                    end_pos=len(text),
+                )
+            )
 
         return sections
 
@@ -266,13 +278,15 @@ class JDParser:
             if self._skill_in_text(canonical, text_lower):
                 evidence = self._find_evidence_phrase(canonical, text)
                 confidence = self._calculate_confidence(canonical, text_lower, evidence)
-                results.append({
-                    "canonical_skill": canonical,
-                    "importance": canonical_importance,
-                    "evidence_phrase": evidence,
-                    "extraction_confidence": confidence,
-                    "requirement_type": requirement_type.value,
-                })
+                results.append(
+                    {
+                        "canonical_skill": canonical,
+                        "importance": canonical_importance,
+                        "evidence_phrase": evidence,
+                        "extraction_confidence": confidence,
+                        "requirement_type": requirement_type.value,
+                    }
+                )
                 continue
 
             # Check aliases
@@ -280,13 +294,15 @@ class JDParser:
                 if self._skill_in_text(alias, text_lower):
                     evidence = self._find_evidence_phrase(alias, text)
                     confidence = self._calculate_confidence(alias, text_lower, evidence)
-                    results.append({
-                        "canonical_skill": canonical,
-                        "importance": alias_importance,
-                        "evidence_phrase": evidence,
-                        "extraction_confidence": confidence,
-                        "requirement_type": requirement_type.value,
-                    })
+                    results.append(
+                        {
+                            "canonical_skill": canonical,
+                            "importance": alias_importance,
+                            "evidence_phrase": evidence,
+                            "extraction_confidence": confidence,
+                            "requirement_type": requirement_type.value,
+                        }
+                    )
                     break
 
         # Sort by importance * confidence
@@ -311,7 +327,7 @@ class JDParser:
 
         start = max(0, idx - window)
         end = min(len(text), idx + len(skill) + window)
-        phrase = text[start:end].strip()
+        phrase = snap_slice(text, start, end)
 
         # Try to get full sentence/bullet
         sentences = re.split(r"[.!?]\s+", phrase)
@@ -363,9 +379,3 @@ class JDParser:
             return max(years_found)
 
         return 0
-
-
-def parse_jd(jd_text: str, taxonomy: Optional[SkillTaxonomy] = None) -> dict:
-    """Convenience function for JD parsing."""
-    parser = JDParser(taxonomy)
-    return parser.parse(jd_text)

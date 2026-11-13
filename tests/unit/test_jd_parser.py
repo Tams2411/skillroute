@@ -66,19 +66,17 @@ def test_parser_extracts_contextual_skills_with_explicit_section_types():
     assert contextual["sql"]["requirement_type"] == "education"
     assert contextual["docker"]["importance"] > preferred["terraform"]["importance"]
     assert contextual["docker"]["importance"] < required["python"]["importance"]
-    assert "python" not in {
-        skill["canonical_skill"] for skill in parsed["contextual_skills"]
-    }
+    assert "python" not in {skill["canonical_skill"] for skill in parsed["contextual_skills"]}
 
 
 def test_required_mention_wins_when_skill_repeats_in_contextual_section():
     parsed = JDParser().parse(
-        "Required Skills:\n- Python\n"
-        "Responsibilities:\n- Build data tools using Python"
+        "Required Skills:\n- Python\nResponsibilities:\n- Build data tools using Python"
     )
 
     python = [
-        skill for collection in (
+        skill
+        for collection in (
             parsed["required_skills"],
             parsed["preferred_skills"],
             parsed["contextual_skills"],
@@ -89,3 +87,21 @@ def test_required_mention_wins_when_skill_repeats_in_contextual_section():
 
     assert len(python) == 1
     assert python[0]["requirement_type"] == "required"
+
+
+def test_experience_years_do_not_come_from_company_history_boilerplate():
+    """Falling back to the whole JD picked up phrases like "10 years of history"."""
+    parsed = JDParser().parse(
+        "Data Engineer\n\n"
+        "About the company\n"
+        "10 years of company history and rapid growth.\n\n"
+        "Required Skills:\n- Python"
+    )
+
+    assert parsed["target_experience_years"] == 0  # 0 is the "not specified" sentinel
+
+
+def test_experience_years_read_an_explicit_experience_requirement():
+    parsed = JDParser().parse("Data Engineer\n\nExperience:\n- 3+ years of Python and SQL")
+
+    assert parsed["target_experience_years"] == 3
